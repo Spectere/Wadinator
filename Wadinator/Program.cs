@@ -192,7 +192,7 @@ if(pathIsDirectory) {
 }
 
 // Announce the results.
-var exePrefix = OperatingSystem.IsWindows() ? "" : "./";
+var exePrefix = OperatingSystem.IsWindows() ? @".\" : "./";
 
 if(pathIsDirectory) {
     Print(
