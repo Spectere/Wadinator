@@ -20,6 +20,17 @@ The recursion function only works if a path is passed. This causes the
 Wadinator to scan the path and its subdirectories rather than just the base
 path.
 
+## Randomization!
+
+If a path is given to the Wadinator, a running list of picked WADs will be
+created and saved into the `wadinator_played.txt` file. When all of the files
+in the directory have been picked, the program will throw an error.
+
+To reset the random pool, simply delete the `wadinator_played.txt` file. This
+file is just a simple list of strings, so you also have the option of manually
+adding files to it (if you don't want them to be selected) or deleting
+individual records.
+
 ## Analysis
 
 The Wadinator analyzes the following lumps within a WAD file:
