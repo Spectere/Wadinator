@@ -8,13 +8,14 @@ appropriate complevel for it. The randomization is optional, as giving the
 Wadinator the path to a WAD (rather than a directory) will cause it to skip the
 random draw and simply analyze the file.
 
-The Wadinator is intended for use with DSDA-Doom (though it should work with any
-PrBoom+-based port). Only the Doom map format is supported at this time.
+The Wadinator is intended for use with DSDA-Doom and Crispy Heretic. Only the
+Doom WAD format is supported at this time.
 
 ## Usage
 
 The Wadinator requires a single parameter—the path to the WAD file or
-directory—and supports an optional recursion (`-r`) parameter.
+directory—and supports an optional recursion (`-r`) parameter. If the program
+is used with Heretic WADs, the `-heretic` parameter must be specified.
 
 The recursion function only works if a path is passed. This causes the
 Wadinator to scan the path and its subdirectories rather than just the base
@@ -40,7 +41,8 @@ The Wadinator analyzes the following lumps within a WAD file:
 * SECTORS
 * THINGS
 
-In addition, it also checks the map names and some map features.
+In addition, it also checks the map names and some map features. Note that
+complevel detection will not be performed for Heretic WADs.
 
 ### DEHACKED
 
@@ -86,6 +88,10 @@ There are a number of quirks with older DOS level editors that may cause
 unexpected results. While some of these have been worked around, it's possible
 that more may crop up as the sample size increases. If you run into something
 like this, please open a GitHub issue and let us know!
+
+The Wadinator makes no attempt to detect Heretic (or other) WAD files. A
+command line parameter must be specified in order for it to handle these
+gracefully. Autodetection support may be provided at a future date.
 
 ## Contributions
 
