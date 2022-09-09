@@ -88,7 +88,7 @@ public static class Lumpalyzer {
             result = result.Promote(CompLevel.Mbf21, doomVersion.Value == "2021");
         }
 
-        foreach(var kvp in dehLines.Select(line => SplitLine(line))) {
+        foreach(var kvp in dehLines.Select(SplitLine)) {
             // Check for MBF21 bits.
             result.Promote(CompLevel.Mbf21, kvp.Key == "MBF21 Bits");
 

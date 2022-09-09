@@ -143,7 +143,6 @@ if(args.Length == 0) {
 }
 
 // Handle command line parameters as lazily as possible.
-var basePathIndex = 0;
 var recurse = false;
 var heretic = false;
 var path = "";
