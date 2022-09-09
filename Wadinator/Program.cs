@@ -125,7 +125,7 @@ static void Print(params string[] lines) {
         Console.WriteLine(line);
 }
 
-if(args.Length < 1 || args.Length > 2) {
+if(args.Length == 0) {
     var startCommand = Environment.CommandLine.Split(' ')[0];
     Print($"usage: {startCommand} [-r] [-heretic] <path/file>",
         "",
