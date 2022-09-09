@@ -102,7 +102,7 @@ static string? GetRandomFile(string path, bool recurse) {
 
         // Remove the played WADs from the list.
         for(var index = wadFileList.Count - 1; index >= 0; index--) {
-            if(playedFiles.Contains(wadFileList[index])) {
+            if(playedFiles.Contains(wadFileList[index], StringComparer.InvariantCultureIgnoreCase)) {
                 wadFileList.RemoveAt(index);
             }
         }
