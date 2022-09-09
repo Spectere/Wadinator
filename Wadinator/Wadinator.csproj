@@ -9,4 +9,8 @@
         <FileVersion>1.0.1.0</FileVersion>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Samboy063.Tomlet" Version="3.2.2" />
+    </ItemGroup>
+
 </Project>

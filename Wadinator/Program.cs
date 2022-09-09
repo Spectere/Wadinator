@@ -1,5 +1,8 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Reflection;
+using System.Text.RegularExpressions;
+using Tomlet;
 using Wadinator;
+using Wadinator.Configuration;
 
 const string playedFileName = "wadinator_played.txt";
 
@@ -125,9 +128,34 @@ static void Print(params string[] lines) {
         Console.WriteLine(line);
 }
 
-if(args.Length == 0) {
+// Check for a default configuration file, and create one if it doesn't exist.
+var appDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
+var configPath = Path.Combine(appDirectory, "Wadinator.toml");
+
+if(!File.Exists(configPath)) {
+    var defaultConfig = new WadinatorConfig();
+    var defaultConfigToml = TomletMain.DocumentFrom(defaultConfig);
+    var defaultConfigFile = File.CreateText(configPath);
+    
+    defaultConfigFile.WriteLine(defaultConfigToml.SerializedValue);
+    defaultConfigFile.Flush();
+    defaultConfigFile.Close();
+    
+    Print("A default configuration has been created called Wadinator.toml.",
+        "",
+        "Please modify that with your desired settings to use this application."
+    );
+
+    return 0;
+}
+
+var configToml = TomlParser.ParseFile(configPath);
+var config = TomletMain.To<WadinatorConfig>(configToml);
+
+// Check arguments.
+if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
     var startCommand = Environment.CommandLine.Split(' ')[0];
-    Print($"usage: {startCommand} [-r] [-heretic] <path/file>",
+    Print($"usage: {startCommand} [-(no-)recurse] [-doom/-heretic] <path/file>",
         "",
         "  If a directory is specified, a WAD will be randomly selected and logged to",
         "  ensure that the same file is not picked twice. If a file is selected, the WAD",
@@ -135,25 +163,40 @@ if(args.Length == 0) {
         "  if you only want the program to estimate the appropriate complevel for a single",
         "  file.",
         "",
-        "    -r        Scan directory recursively (only valid if a directory is specified).",
-        "    -heretic  Specifies that the WADs in the directory were designed for Heretic.",
+        "    -doom          Specifies that the WADs in the directory were designed for",
+        "                   Doom/Doom II.",
+        "    -(no-)recurse  Scan directory recursively (only valid if a directory is",
+        "                   specified). Use 'no-recurse' to explicitly disable this",
+        "                   behavior.",
+        "    -heretic       Specifies that the WADs in the directory were designed for",
+        "                   Heretic.",
         ""
     );
     return 1;
 }
 
 // Handle command line parameters as lazily as possible.
-var recurse = false;
-var heretic = false;
-var path = "";
+var recurse = config.DefaultRecurse;
+var game = Game.Unspecified;
+var path = config.DefaultPath;
 foreach(var arg in args) {
     switch(arg) {
+        case "-doom":
+            game = Game.Doom;
+            break;
+        
+        case "-no-r":
+        case "-no-recurse":
+            recurse = false;
+            break;
+        
         case "-r":
+        case "-recurse":
             recurse = true;
             break;
 
         case "-heretic":
-            heretic = true;
+            game = Game.Heretic;
             break;
 
         default:
@@ -162,7 +205,7 @@ foreach(var arg in args) {
                 return 1;
             }
 
-            if(!string.IsNullOrWhiteSpace(path)) {
+            if(!string.IsNullOrWhiteSpace(path) && path != config.DefaultPath) {
                 Print(
                     "error: only one path/filename can be specified at a time!",
                     "",
@@ -199,17 +242,17 @@ var wad = new WadReader(path);
 
 // Try to figure out if this is Doom 1 or Doom 2 based on the map list.
 var allMapsRegEx = new Regex("^(E.M.|MAP..)$");
-var doom1MapRegEx = new Regex("^(E.M.)$");
+var episodeAndMapRegEx = new Regex("^(E.M.)$");
 
 var mapList = wad.Lumps.Where(x => allMapsRegEx.IsMatch(x.Name)).ToList();
-var hasDoom1Maps = mapList.Any(x => doom1MapRegEx.IsMatch(x.Name));
-var hasDoom2Maps = mapList.Any(x => x.Name.StartsWith("MAP"));
+var usesEpisodeAndMap = mapList.Any(x => episodeAndMapRegEx.IsMatch(x.Name));
+var usesMapOnly = mapList.Any(x => x.Name.StartsWith("MAP"));
 
 var compLevel = CompLevel.Doom19;
 var hasMismatchedBosses = false;
 
-if(!heretic) {
-    (compLevel, hasMismatchedBosses) = DetectCompLevel(ref wad, ref mapList, hasDoom2Maps);
+if(game != Game.Heretic) {
+    (compLevel, hasMismatchedBosses) = DetectCompLevel(ref wad, ref mapList, usesMapOnly);
 }
 
 // Add the WAD to the played file.
@@ -249,73 +292,88 @@ Print(
     ""
 );
 
-if(heretic) {
+if(game == Game.Heretic) {
     // Heretic
     Print(
-        $"    {exePrefix}crispy-heretic -file {path} -skill 4"
+        $"    {exePrefix}{config.Games.Heretic.ExecutableName} -file {path} -skill 4"
     );
 } else {
     // Doom or Doom II
+    var compLevelText = config.Games.Doom.UsesComplevels ? $" -complevel {(int)compLevel}" : "";
     Print(
-       $"    {exePrefix}dsda-doom -iwad {(hasDoom2Maps ? "doom2.wad" : "doom.wad")} -file {path} -complevel {(int)compLevel} -skill 4",
+       $"    {exePrefix}{config.Games.Doom.ExecutableName} -iwad {(usesMapOnly ? "doom2.wad" : "doom.wad")} -file {path} -skill 4{compLevelText}",
         ""
     );
 
-    if(hasMismatchedBosses) {
-        Print(
-            "",
-            "  NOTE: This WAD has a cyberdemon and/or spider mastermind on E1M8, as well as sectors",
-            "        with the 666 tag value. If this WAD was designed around Ultimate Doom 1.9's",
-            "        behavior, this will likely lead to unexpected results. In this case, use complevel",
-            "        3. If this is an older WAD that relies on the legacy behavior (such as UAC_DEAD.WAD),",
-            "        complevel 2 (as specified above) must be used.",
-            ""
-        );
-    }
-
-    if(compLevel < CompLevel.Mbf21) {
-        Print(
-            "", 
-           $"  The complevel detection isn't perfect. If you run into trouble, try {(compLevel == CompLevel.Mbf ? "this" : "one of these")} instead:",
-            ""
-        );
-    }
-
-    if(compLevel < CompLevel.Boom && hasDoom1Maps) {
-        Print(
-            "     0 - Doom v1.2",
-            "     1 - Doom v1.666");
-
-        if(compLevel == CompLevel.UltimateDoom) {
+    if(hasMismatchedBosses && compLevel <= CompLevel.UltimateDoom) {
+        if(config.Games.Doom.UsesComplevels) {
             Print(
-                "     2 - Doom v1.9"
+                "",
+                "  NOTE: This WAD has a cyberdemon and/or spider mastermind on E1M8, as well as sectors",
+                "        with the 666 tag value. If this WAD was designed around Ultimate Doom 1.9's",
+                "        behavior, this will likely lead to unexpected results. In this case, use complevel",
+                "        3. If this is an older WAD that relies on the legacy behavior (such as UAC_DEAD.WAD),",
+                "        complevel 2 (as specified above) must be used.",
+                ""
             );
-        }
-
-        if(compLevel == CompLevel.Doom19) {
+        } else {
             Print(
-                "     3 - Ultimate Doom v1.9"
+                "",
+                "  NOTE: This WAD has a cyberdemon and/or spider mastermind on E1M8, as well as sectors",
+                "        with the 666 tag value. If this WAD was designed around Ultimate Doom 1.9's",
+                "        behavior, this will likely lead to unexpected results. Please ensure that your",
+                "        source port's compatibility settings are configured if this WAD relies on legacy",
+                "        behavior.",
+                ""
             );
         }
     }
 
-    if(compLevel < CompLevel.Boom && hasDoom2Maps) {
-        Print(
-            "     1 - Doom v1.666",
-            "     4 - Final Doom"
-        );
-    }
+    if(config.Games.Doom.UsesComplevels) {
+        if(compLevel < CompLevel.Mbf21) {
+            Print(
+                "",
+                $"  The complevel detection isn't perfect. If you run into trouble, try {(compLevel == CompLevel.Mbf ? "this" : "one of these")} instead:",
+                ""
+            );
+        }
 
-    if(compLevel < CompLevel.Boom)
-        Print("     9 - Boom");
-    if(compLevel < CompLevel.Mbf)
-        Print("    11 - MBF");
-    if(compLevel < CompLevel.Mbf21) {
-        Print(
-            "    21 - MBF21",
-            "",
-            "  When in doubt, check the WAD's readme!"
-        );
+        if(compLevel < CompLevel.Boom && usesEpisodeAndMap) {
+            Print(
+                "     0 - Doom v1.2",
+                "     1 - Doom v1.666");
+
+            if(compLevel == CompLevel.UltimateDoom) {
+                Print(
+                    "     2 - Doom v1.9"
+                );
+            }
+
+            if(compLevel == CompLevel.Doom19) {
+                Print(
+                    "     3 - Ultimate Doom v1.9"
+                );
+            }
+        }
+
+        if(compLevel < CompLevel.Boom && usesMapOnly) {
+            Print(
+                "     1 - Doom v1.666",
+                "     4 - Final Doom"
+            );
+        }
+
+        if(compLevel < CompLevel.Boom)
+            Print("     9 - Boom");
+        if(compLevel < CompLevel.Mbf)
+            Print("    11 - MBF");
+        if(compLevel < CompLevel.Mbf21) {
+            Print(
+                "    21 - MBF21",
+                "",
+                "  When in doubt, check the WAD's readme!"
+            );
+        }
     }
 }
 
