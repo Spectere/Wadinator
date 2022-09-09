@@ -141,7 +141,8 @@ if(!File.Exists(configPath)) {
     defaultConfigFile.Flush();
     defaultConfigFile.Close();
     
-    Print("A default configuration has been created called Wadinator.toml.",
+    Print(
+        "A default configuration has been created called Wadinator.toml.",
         "",
         "Please modify that with your desired settings to use this application."
     );
@@ -155,7 +156,8 @@ var config = TomletMain.To<WadinatorConfig>(configToml);
 // Check arguments.
 if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
     var startCommand = Environment.CommandLine.Split(' ')[0];
-    Print($"usage: {startCommand} [-(no-)recurse] [-doom/-heretic] <path/file>",
+    Print(
+        $"usage: {startCommand} [-(no-)recurse] [-doom/-heretic] <path/file>",
         "",
         "  If a directory is specified, a WAD will be randomly selected and logged to",
         "  ensure that the same file is not picked twice. If a file is selected, the WAD",
@@ -209,7 +211,8 @@ foreach(var arg in args) {
                 Print(
                     "error: only one path/filename can be specified at a time!",
                     "",
-                    "If the path has spaces in it, be sure to surround it in quotes.");
+                    "If the path has spaces in it, be sure to surround it in quotes."
+                );
 
                 return 1;
             }
@@ -276,9 +279,10 @@ if(pathIsDirectory) {
     );
 } else {
     Print(
-         "",
+        "",
         $"    ===>  {path}  <===",
-         "");
+        ""
+    );
 }
 
 Print(
