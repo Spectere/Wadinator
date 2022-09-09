@@ -1,37 +1,13 @@
 using System.Collections.ObjectModel;
 using System.Text;
+using Wadinator.Exceptions;
 
 namespace Wadinator;
 
+/// <summary>
+/// 
+/// </summary>
 public class WadReader : IDisposable {
-    public class LumpNotFoundException : Exception {
-        public LumpNotFoundException() {}
-        public LumpNotFoundException(string lumpName) : base($"{lumpName} could not be found!") {}
-        public LumpNotFoundException(string lumpName, Exception inner) : base($"{lumpName} could not be found!", inner) {}
-    }
-
-    public enum WadType {
-        Pwad,
-        Iwad,
-        Unknown
-    }
-
-    /// <summary>
-    /// Describes a single directory entry in a WAD.
-    /// </summary>
-    /// <param name="Position">The position of the data.</param>
-    /// <param name="Size">The size of the data.</param>
-    /// <param name="Name">The filename associated with the entry.</param>
-    public record WadDirectoryEntry(int Position, int Size, string Name);
-
-    /// <summary>
-    /// The header of the WAD file.
-    /// </summary>
-    /// <param name="Magic">The file magic (first four bytes).</param>
-    /// <param name="Entries">The number of directory entries in the WAD file.</param>
-    /// <param name="DirectoryPosition">The position of the WAD's directory.</param>
-    public record WadHeader(uint Magic, int Entries, int DirectoryPosition);
-
     /// <summary>
     /// The header of this WAD file.
     /// </summary>
@@ -91,17 +67,35 @@ public class WadReader : IDisposable {
         Lumps = new ReadOnlyCollection<WadDirectoryEntry>(entriesList);
     }
 
+    /// <summary>
+    /// Returns a <see cref="Stream"/> containing the contents of a WAD lump.
+    /// </summary>
+    /// <param name="entry">A <see cref="WadDirectoryEntry"/> describing the lump.</param>
+    /// <returns>A <see cref="Stream"/> containing the contents of a WAD lump.</returns>
     public Stream GetLump(WadDirectoryEntry entry) {
         _fileStream.Seek(entry.Position, SeekOrigin.Begin);
         var data = _binaryReader.ReadBytes(entry.Size);
         return new MemoryStream(data);
     }
 
+    /// <summary>
+    /// Returns a <see cref="Stream"/> containing the contents of a WAD lump.
+    /// </summary>
+    /// <param name="name">The name of the lump to locate.</param>
+    /// <returns>A <see cref="Stream"/> containing the contents of a WAD lump.</returns>
+    /// <exception cref="AmbiguousLumpException">Thrown when multiple identically named lumps are found.</exception>
+    /// <exception cref="LumpNotFoundException">Thrown when the lump could not be found.</exception>
     public Stream GetLump(string name) {
         var entry = Lumps.SingleOrDefault(x => x.Name == name);
 
-        if(entry is null)
+        if(entry is null) {
+            // Figure out exactly what went wrong.
+            if(Lumps.Count(x => x.Name == name) > 1) {
+                throw new AmbiguousLumpException(name);
+            }
+            
             throw new LumpNotFoundException(name);
+        }
 
         return GetLump(entry);
     }

@@ -1,90 +1,9 @@
 ﻿using System.Reflection;
-using System.Text.RegularExpressions;
 using Tomlet;
 using Wadinator;
 using Wadinator.Configuration;
 
 const string playedFileName = "wadinator_played.txt";
-
-static (CompLevel, bool) DetectCompLevel(ref WadReader wad, ref List<WadReader.WadDirectoryEntry> mapList, bool hasDoom2Maps) {
-    // Perform a linedef/sector analysis to guess the correct complevel.
-    var compLevel = CompLevel.Doom19;
-    foreach(var lump in wad.Lumps) {
-        // Indiscriminately check all supported lumps.
-        var resultComplevel = lump.Name switch {
-            "DEHACKED" => Lumpalyzer.AnalyzeDeHackEd(wad.GetLump(lump)),
-            "LINEDEFS" => Lumpalyzer.AnalyzeLinedefs(wad.GetLump(lump)),
-            "SECTORS" => Lumpalyzer.AnalyzeSectors(wad.GetLump(lump)),
-            "THINGS" => Lumpalyzer.AnalyzeThings(wad.GetLump(lump)),
-            _ => compLevel
-        };
-
-        compLevel = compLevel.Promote(resultComplevel);
-    }
-
-    /*
-     * Perform any necessary complevel adjustments.
-     */
-    var hasMismatchedBosses = false;
-    if(compLevel < CompLevel.Boom && !hasDoom2Maps) {
-        // If Ultimate Doom maps are detected, we already have a good idea which
-        // complevel this should be.
-        var ultimateDoomMapRegEx = new Regex("^(E4M.)$");
-        if(mapList.Any(map => ultimateDoomMapRegEx.IsMatch(map.Name))) {
-            compLevel = CompLevel.UltimateDoom;
-            return (compLevel, hasMismatchedBosses);
-        }
-
-        /*
-         * Check for mismatched boss enemies (Cyberdemon/Mastermind on E1M8).
-         */
-        if(mapList.Any(lump => lump.Name == "E1M8")) {
-            var mapLumps = GetMapLumps(wad, "E1M8");
-            var sectorLump = mapLumps.FirstOrDefault(x => x.Name == "SECTORS");
-            var thingLump = mapLumps.FirstOrDefault(x => x.Name == "THINGS");
-
-            if(sectorLump is not null && thingLump is not null) {
-                var sectorStream = wad.GetLump(sectorLump);
-                var thingStream = wad.GetLump(thingLump);
-
-                hasMismatchedBosses = Lumpalyzer.HasMismatchedBossEncounter("E1M8", sectorStream, thingStream);
-            }
-        }
-
-        compLevel = compLevel.Promote(CompLevel.UltimateDoom, !hasMismatchedBosses);
-    }
-
-    return (compLevel, hasMismatchedBosses);
-}
-
-static List<WadReader.WadDirectoryEntry> GetMapLumps(in WadReader wad, string mapName) {
-    // NOTE: If we need to fetch more items, expand this list accordingly.
-    var candidates = new List<string> {
-        "LINEDEFS",
-        "SECTORS",
-        "THINGS"
-    };
-
-    var mapFound = false;
-    var mapLumps = new List<WadReader.WadDirectoryEntry>();
-    foreach(var lump in wad.Lumps) {
-        if(!mapFound) {
-            if(lump.Name != mapName) continue;
-
-            mapFound = true;
-            continue;
-        }
-
-        // Check for candidates and add them to the list.
-        if(candidates.Contains(lump.Name))
-            mapLumps.Add(lump);
-
-        // If we run into a marker lump, we've gone too far.
-        if(lump.Size == 0) break;
-    }
-
-    return mapLumps;
-}
 
 static string? GetRandomFile(string path, bool recurse) {
     // Scan the directory for WAD files.
@@ -179,7 +98,7 @@ if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
 
 // Handle command line parameters as lazily as possible.
 var recurse = config.DefaultRecurse;
-var game = Game.Unspecified;
+var game = Game.Unknown;
 var path = config.DefaultPath;
 foreach(var arg in args) {
     switch(arg) {
@@ -244,19 +163,7 @@ if(Directory.Exists(path)) {
 var wad = new WadReader(path);
 
 // Try to figure out if this is Doom 1 or Doom 2 based on the map list.
-var allMapsRegEx = new Regex("^(E.M.|MAP..)$");
-var episodeAndMapRegEx = new Regex("^(E.M.)$");
-
-var mapList = wad.Lumps.Where(x => allMapsRegEx.IsMatch(x.Name)).ToList();
-var usesEpisodeAndMap = mapList.Any(x => episodeAndMapRegEx.IsMatch(x.Name));
-var usesMapOnly = mapList.Any(x => x.Name.StartsWith("MAP"));
-
-var compLevel = CompLevel.Doom19;
-var hasMismatchedBosses = false;
-
-if(game != Game.Heretic) {
-    (compLevel, hasMismatchedBosses) = DetectCompLevel(ref wad, ref mapList, usesMapOnly);
-}
+var analysisResults = new Analyzer(wad).AnalyzeWad();
 
 // Add the WAD to the played file.
 if(pathIsDirectory) {
@@ -289,7 +196,7 @@ Print(
     "",
     "  This WAD contains the following maps:",
     "",
-   $"    {string.Join(", ", mapList.OrderBy(lump => lump.Name).Select(lump => lump.Name))}",
+   $"    {string.Join(", ", analysisResults.MapList.OrderBy(lump => lump.Name).Select(lump => lump.Name))}",
     "",
     "",
     "  Here, have a convenient command line:",
@@ -303,13 +210,13 @@ if(game == Game.Heretic) {
     );
 } else {
     // Doom or Doom II
-    var compLevelText = config.Games.Doom.UsesComplevels ? $" -complevel {(int)compLevel}" : "";
+    var compLevelText = config.Games.Doom.UsesComplevels ? $" -complevel {(int)analysisResults.CompLevel}" : "";
     Print(
-       $"    {exePrefix}{config.Games.Doom.ExecutableName} -iwad {(usesMapOnly ? "doom2.wad" : "doom.wad")} -file {path} -skill 4{compLevelText}",
+       $"    {exePrefix}{config.Games.Doom.ExecutableName} -iwad {(analysisResults.ContainsMapXxMaps ? "doom2.wad" : "doom.wad")} -file {path} -skill 4{compLevelText}",
         ""
     );
 
-    if(hasMismatchedBosses && compLevel <= CompLevel.UltimateDoom) {
+    if(analysisResults.HasMismatchedBosses && analysisResults.CompLevel <= CompLevel.UltimateDoom) {
         if(config.Games.Doom.UsesComplevels) {
             Print(
                 "",
@@ -334,44 +241,44 @@ if(game == Game.Heretic) {
     }
 
     if(config.Games.Doom.UsesComplevels) {
-        if(compLevel < CompLevel.Mbf21) {
+        if(analysisResults.CompLevel < CompLevel.Mbf21) {
             Print(
                 "",
-                $"  The complevel detection isn't perfect. If you run into trouble, try {(compLevel == CompLevel.Mbf ? "this" : "one of these")} instead:",
+                $"  The complevel detection isn't perfect. If you run into trouble, try {(analysisResults.CompLevel == CompLevel.Mbf ? "this" : "one of these")} instead:",
                 ""
             );
         }
 
-        if(compLevel < CompLevel.Boom && usesEpisodeAndMap) {
+        if(analysisResults.CompLevel < CompLevel.Boom && analysisResults.ContainsExMxMaps) {
             Print(
                 "     0 - Doom v1.2",
                 "     1 - Doom v1.666");
 
-            if(compLevel == CompLevel.UltimateDoom) {
+            if(analysisResults.CompLevel == CompLevel.UltimateDoom) {
                 Print(
                     "     2 - Doom v1.9"
                 );
             }
 
-            if(compLevel == CompLevel.Doom19) {
+            if(analysisResults.CompLevel == CompLevel.Doom19) {
                 Print(
                     "     3 - Ultimate Doom v1.9"
                 );
             }
         }
 
-        if(compLevel < CompLevel.Boom && usesMapOnly) {
+        if(analysisResults.CompLevel < CompLevel.Boom && analysisResults.ContainsMapXxMaps) {
             Print(
                 "     1 - Doom v1.666",
                 "     4 - Final Doom"
             );
         }
 
-        if(compLevel < CompLevel.Boom)
+        if(analysisResults.CompLevel < CompLevel.Boom)
             Print("     9 - Boom");
-        if(compLevel < CompLevel.Mbf)
+        if(analysisResults.CompLevel < CompLevel.Mbf)
             Print("    11 - MBF");
-        if(compLevel < CompLevel.Mbf21) {
+        if(analysisResults.CompLevel < CompLevel.Mbf21) {
             Print(
                 "    21 - MBF21",
                 "",

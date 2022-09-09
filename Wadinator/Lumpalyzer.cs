@@ -2,8 +2,21 @@ using System.Text;
 
 namespace Wadinator;
 
+/// <summary>
+/// Focuses on reading and analyzes WAD lumps.
+/// </summary>
 public static class Lumpalyzer {
     // ReSharper disable NotAccessedPositionalProperty.Local
+    /// <summary>
+    /// Represents a Doom or Heretic linedef.
+    /// </summary>
+    /// <param name="StartVertex">The starting vertex for this linedef.</param>
+    /// <param name="EndVertex">The ending vertex for this linedef.</param>
+    /// <param name="Flags">Special flags for this linedef.</param>
+    /// <param name="Type">The action type for this linedef.</param>
+    /// <param name="Tag">This linedef's tag.</param>
+    /// <param name="FrontSidedef">This linedef's front sidedef.</param>
+    /// <param name="BackSidedef">This linedef's back sidedef.</param>
     private record Linedef(
         ushort StartVertex,
         ushort EndVertex,
@@ -14,6 +27,16 @@ public static class Lumpalyzer {
         ushort BackSidedef
     );
 
+    /// <summary>
+    /// Represents a Doom or Heretic sector.
+    /// </summary>
+    /// <param name="FloorHeight">The height of the floor.</param>
+    /// <param name="CeilingHeight">The height of the ceiling.</param>
+    /// <param name="FloorTexture">The texture of the floor.</param>
+    /// <param name="CeilingTexture">The texture of the ceiling.</param>
+    /// <param name="LightLevel">The light level.</param>
+    /// <param name="Type">This sector's special type.</param>
+    /// <param name="Tag">This sector's tag.</param>
     private record Sector(
         ushort FloorHeight,
         ushort CeilingHeight,
@@ -24,6 +47,14 @@ public static class Lumpalyzer {
         ushort Tag
     );
 
+    /// <summary>
+    /// Represents a Doom or Heretic thing.
+    /// </summary>
+    /// <param name="XPosition">The X position.</param>
+    /// <param name="YPosition">The Y position.</param>
+    /// <param name="Angle">The angle of this thing.</param>
+    /// <param name="Type">The type of this thing.</param>
+    /// <param name="Flags">This thing's flags.</param>
     private record Thing(
         ushort XPosition,
         ushort YPosition,
@@ -33,6 +64,11 @@ public static class Lumpalyzer {
     );
     // ReSharper restore NotAccessedPositionalProperty.Local
 
+    /// <summary>
+    /// Guesses which complevel is required to make use of a WAD's DeHackEd lump.
+    /// </summary>
+    /// <param name="dehackedStream">A <see cref="Stream"/> containing the WAD's DeHackEd lump.</param>
+    /// <returns>The estimated complevel.</returns>
     public static CompLevel AnalyzeDeHackEd(Stream dehackedStream) {
         // TODO: Consider splitting this off into a more robust DEH parser.
         var mbf21CodePointers = new List<string> {
@@ -114,6 +150,11 @@ public static class Lumpalyzer {
         return result;
     }
 
+    /// <summary>
+    /// Analyzes a map's LINEDEF lump and guesses the required complevel.
+    /// </summary>
+    /// <param name="linedefStream">A <see cref="Stream"/> containing the map's LINEDEF lump.</param>
+    /// <returns>The estimated complevel.</returns>
     public static CompLevel AnalyzeLinedefs(Stream linedefStream) {
         var result = CompLevel.Doom19;
 
@@ -150,6 +191,11 @@ public static class Lumpalyzer {
         return result;
     }
 
+    /// <summary>
+    /// Analyzes a map's SECTORS lump and guesses the required complevel.
+    /// </summary>
+    /// <param name="sectorStream">A <see cref="Stream"/> containing the map's SECTORS lump.</param>
+    /// <returns>The estimated complevel.</returns>
     public static CompLevel AnalyzeSectors(Stream sectorStream) {
         var result = CompLevel.Doom19;
 
@@ -171,6 +217,11 @@ public static class Lumpalyzer {
         return result;
     }
 
+    /// <summary>
+    /// Analyzes a map's THINGS lump and guesses the required complevel.
+    /// </summary>
+    /// <param name="thingStream">A <see cref="Stream"/> containing the map's THINGS lump.</param>
+    /// <returns>The estimated complevel.</returns>
     public static CompLevel AnalyzeThings(Stream thingStream) {
         var result = CompLevel.Doom19;
 
@@ -210,6 +261,14 @@ public static class Lumpalyzer {
         return result;
     }
 
+    /// <summary>
+    /// Determines whether this WAD's E1M8 contains sector tag 666, along with unexpected Cyberdemon(s) and/or Spider Mastermind(s).
+    /// </summary>
+    /// <param name="mapName">The map name.</param>
+    /// <param name="sectorStream">A <see cref="Stream"/> containing this map's SECTORS lump.</param>
+    /// <param name="thingStream">A <see cref="Stream"/> containing this map's THINGS lump.</param>
+    /// <returns><c>true</c> if this is E1M8, has a sector with tag 666, and one or more Cyberdemons and/or Spider Masterminds, otherwise
+    /// <c>false</c>.</returns>
     public static bool HasMismatchedBossEncounter(string mapName, Stream sectorStream, Stream thingStream) {
         if(mapName != "E1M8") return false;  // da fok u doin ere, m8??
 
@@ -224,6 +283,11 @@ public static class Lumpalyzer {
         return bossFound && tag666Found;
     }
 
+    /// <summary>
+    /// Reads a LINEDEFS lump into a list of <see cref="Linedef"/> records.
+    /// </summary>
+    /// <param name="linedefStream">A <see cref="Stream"/> pointing to the level's LINEDEFS lump.</param>
+    /// <returns>A list of <see cref="Linedef"/> objects.</returns>
     private static List<Linedef> ReadLinedefs(Stream linedefStream) {
         using var binaryReader = new BinaryReader(linedefStream);
 
@@ -243,6 +307,11 @@ public static class Lumpalyzer {
         return linedefs;
     }
 
+    /// <summary>
+    /// Reads a SECTORS lump into a list of <see cref="Sector"/> records.
+    /// </summary>
+    /// <param name="sectorStream">A <see cref="Stream"/> pointing to the level's SECTORS lump.</param>
+    /// <returns>A list of <see cref="Sector"/> objects.</returns>
     private static List<Sector> ReadSectors(Stream sectorStream) {
         using var binaryReader = new BinaryReader(sectorStream);
 
@@ -262,6 +331,11 @@ public static class Lumpalyzer {
         return sectors;
     }
 
+    /// <summary>
+    /// Reads a THINGS lump into a list of <see cref="Thing"/> records.
+    /// </summary>
+    /// <param name="thingStream">A <see cref="Stream"/> pointing to the level's THINGS lump.</param>
+    /// <returns>A list of <see cref="Thing"/> objects.</returns>
     private static List<Thing> ReadThings(Stream thingStream) {
         using var binaryReader = new BinaryReader(thingStream);
 
