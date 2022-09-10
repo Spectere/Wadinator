@@ -16,7 +16,7 @@ public class WadinatorConfig {
     /// Indicates whether or not paths are recursed by default.
     /// </summary>
     [TomlProperty("default-recurse")]
-    public bool DefaultRecurse { get; set; } = false;
+    public bool RecurseDirectories { get; set; } = false;
     
     /// <summary>
     /// Specifies whether randomly picked WADs are logged to the "played" file.
@@ -25,14 +25,14 @@ public class WadinatorConfig {
     public bool LogRandomWadResults { get; set; } = true;
 
     /// <summary>
+    /// Specifies that the input WADs should be played with Heretic.
+    /// </summary>
+    [TomlProperty("use-heretic")]
+    public bool UseHeretic { get; set; } = false;
+
+    /// <summary>
     /// An object containing game-specific configuration.
     /// </summary>
     [TomlProperty("games")]
     public Games Games { get; set; } = new();
-
-    /// <summary>
-    /// An object containing paths to IWAD files.
-    /// </summary>
-    [TomlProperty("iwads")]
-    public Iwads Iwads { get; set; } = new();
 }

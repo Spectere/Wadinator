@@ -98,9 +98,7 @@ if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
 }
 
 // Handle command line parameters as lazily as possible.
-var recurse = config.DefaultRecurse;
-var game = Game.Unknown;
-var logRngResults = config.LogRandomWadResults;
+var game = config.UseHeretic ? Game.Heretic : Game.Doom;
 var path = config.DefaultPath;
 foreach(var arg in args) {
     switch(arg) {
@@ -109,21 +107,21 @@ foreach(var arg in args) {
             break;
         
         case "-log":
-            logRngResults = true;
+            config.LogRandomWadResults = true;
             break;
         
         case "-no-log":
-            logRngResults = false;
+            config.LogRandomWadResults = false;
             break;
         
         case "-no-r":
         case "-no-recurse":
-            recurse = false;
+            config.RecurseDirectories = false;
             break;
         
         case "-r":
         case "-recurse":
-            recurse = true;
+            config.RecurseDirectories = true;
             break;
 
         case "-heretic":
@@ -136,7 +134,7 @@ foreach(var arg in args) {
                 return 1;
             }
 
-            if(!string.IsNullOrWhiteSpace(path) && path != config.DefaultPath) {
+            if(!string.IsNullOrWhiteSpace(config.DefaultPath) && path != config.DefaultPath) {
                 Print(
                     "error: only one path/filename can be specified at a time!",
                     "",
@@ -156,7 +154,7 @@ var pathIsDirectory = false;
 
 if(Directory.Exists(path)) {
     pathIsDirectory = true;
-    path = GetRandomFile(path, recurse, logRngResults);
+    path = GetRandomFile(path, config.RecurseDirectories, config.LogRandomWadResults);
 
     if(path is null) {
         return 0;
@@ -172,11 +170,11 @@ if(Directory.Exists(path)) {
  **************************/
 var wad = new WadReader(path);
 
-// Try to figure out if this is Doom 1 or Doom 2 based on the map list.
+// Analyze the WAD to fetch the map list, determine the complevel, etc.
 var analysisResults = new Analyzer(wad).AnalyzeWad();
 
 // Add the WAD to the played file.
-if(logRngResults && pathIsDirectory) {
+if(config.LogRandomWadResults && pathIsDirectory) {
     var playedFileStream = File.AppendText(playedFileName);
     playedFileStream.WriteLine(path);
     playedFileStream.Flush();
