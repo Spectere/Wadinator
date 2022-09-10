@@ -5,7 +5,7 @@ using Wadinator.Configuration;
 
 const string playedFileName = "wadinator_played.txt";
 
-static string? GetRandomFile(string path, bool recurse) {
+static string? GetRandomFile(string path, bool recurse, bool useRngLog) {
     // Scan the directory for WAD files.
     var wadFileList = new List<string>(Directory.GetFiles(path, "*.wad", new EnumerationOptions {
         MatchCasing = MatchCasing.CaseInsensitive,
@@ -19,7 +19,7 @@ static string? GetRandomFile(string path, bool recurse) {
     }
 
     // Read the "played" file (if it exists).
-    if(File.Exists(playedFileName)) {
+    if(useRngLog && File.Exists(playedFileName)) {
         var playedFiles = new List<string>(File.ReadAllText(playedFileName).Split('\n'));
 
         // Remove the played WADs from the list.
@@ -76,7 +76,7 @@ var config = TomletMain.To<WadinatorConfig>(configToml);
 if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
     var startCommand = Environment.CommandLine.Split(' ')[0];
     Print(
-        $"usage: {startCommand} [-(no-)recurse] [-doom/-heretic] <path/file>",
+        $"usage: {startCommand} [options] <path/file>",
         "",
         "  If a directory is specified, a WAD will be randomly selected and logged to",
         "  ensure that the same file is not picked twice. If a file is selected, the WAD",
@@ -89,6 +89,7 @@ if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
         "    -(no-)recurse  Scan directory recursively (only valid if a directory is",
         "                   specified). Use 'no-recurse' to explicitly disable this",
         "                   behavior.",
+        "    -(no)-log      Enables or disables reading/writing from/to the played file.",
         "    -heretic       Specifies that the WADs in the directory were designed for",
         "                   Heretic.",
         ""
@@ -99,11 +100,20 @@ if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
 // Handle command line parameters as lazily as possible.
 var recurse = config.DefaultRecurse;
 var game = Game.Unknown;
+var logRngResults = config.LogRandomWadResults;
 var path = config.DefaultPath;
 foreach(var arg in args) {
     switch(arg) {
         case "-doom":
             game = Game.Doom;
+            break;
+        
+        case "-log":
+            logRngResults = true;
+            break;
+        
+        case "-no-log":
+            logRngResults = false;
             break;
         
         case "-no-r":
@@ -146,7 +156,7 @@ var pathIsDirectory = false;
 
 if(Directory.Exists(path)) {
     pathIsDirectory = true;
-    path = GetRandomFile(path, recurse);
+    path = GetRandomFile(path, recurse, logRngResults);
 
     if(path is null) {
         return 0;
@@ -166,11 +176,23 @@ var wad = new WadReader(path);
 var analysisResults = new Analyzer(wad).AnalyzeWad();
 
 // Add the WAD to the played file.
-if(pathIsDirectory) {
+if(logRngResults && pathIsDirectory) {
     var playedFileStream = File.AppendText(playedFileName);
     playedFileStream.WriteLine(path);
     playedFileStream.Flush();
     playedFileStream.Close();
+}
+
+// Attempt to detect the first map in the WAD and put together a warp string for it.
+var warpString = " -warp ";
+if(analysisResults.MapList.Any()) {
+    var firstMap = analysisResults.MapList.MinBy(x => x.Name)!;
+
+    if(firstMap.Name.StartsWith("MAP")) {
+        warpString += firstMap.Name[3..].TrimStart('0');
+    } else {
+        warpString += $"{firstMap.Name[1]} {firstMap.Name[3]}";
+    }
 }
 
 // Announce the results.
@@ -206,13 +228,13 @@ Print(
 if(game == Game.Heretic) {
     // Heretic
     Print(
-        $"    {exePrefix}{config.Games.Heretic.ExecutableName} -file {path} -skill 4"
+        $"    {exePrefix}{config.Games.Heretic.ExecutableName} -file {path} -skill 4{warpString}"
     );
 } else {
     // Doom or Doom II
     var compLevelText = config.Games.Doom.UsesComplevels ? $" -complevel {(int)analysisResults.CompLevel}" : "";
     Print(
-       $"    {exePrefix}{config.Games.Doom.ExecutableName} -iwad {(analysisResults.ContainsMapXxMaps ? "doom2.wad" : "doom.wad")} -file {path} -skill 4{compLevelText}",
+       $"    {exePrefix}{config.Games.Doom.ExecutableName} -iwad {(analysisResults.ContainsMapXxMaps ? "doom2.wad" : "doom.wad")} -file {path} -skill 4{compLevelText}{warpString}",
         ""
     );
 

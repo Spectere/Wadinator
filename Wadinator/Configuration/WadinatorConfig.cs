@@ -17,6 +17,12 @@ public class WadinatorConfig {
     /// </summary>
     [TomlProperty("default-recurse")]
     public bool DefaultRecurse { get; set; } = false;
+    
+    /// <summary>
+    /// Specifies whether randomly picked WADs are logged to the "played" file.
+    /// </summary>
+    [TomlProperty("log-rng-results")]
+    public bool LogRandomWadResults { get; set; } = true;
 
     /// <summary>
     /// An object containing game-specific configuration.

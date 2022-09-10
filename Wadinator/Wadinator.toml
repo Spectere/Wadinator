@@ -1,0 +1,24 @@
+# The default path. If this is specified and no path is passed to Wadinator, this will be used. This defaults to "".
+default-path = ""
+
+# The default recursion setting. If this is set to true, paths will be read recursively by default. This can be
+# overridden by passing the -recurse or -no-recurse parameters. This defaults to false.
+default-recurse = false
+
+# Paths to official IWADs. These are used to aid with game detection. Here are the defaults:
+#     heretic = "HERETIC.WAD"
+iwads = { heretic = "HERETIC.WAD" }
+
+# If this is set to true, the Wadinator "played" file will be read and written to. If this is set to false, the
+# "played" file will be ignored. This defaults to true.
+log-rng-results = true
+
+
+# Contains game-specific settings.
+[games]
+
+# Doom-specific settings.
+doom = { filename = "dsda-doom", uses-complevels = true }
+
+# Heretic-specific settings.
+heretic = { filename = "crispy-heretic", uses-complevels = false }
