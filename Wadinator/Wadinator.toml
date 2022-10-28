@@ -15,14 +15,17 @@ use-heretic = false
 
 # The setting that controls the text file finder's output. If this is set to true, the found text file associated with
 # a WAD will be printed into the console. Otherwise, it will output a command to open it in a given text editor, which
-# can be customised in the [text.editor] section below.
+# can be customised in the [editor] section below.
 print-contents = false
 
 # Text editor settings.
-[text.editor]
+[editor]
 
-# The path to the editor's executable.
+# The path to the editor's executable. By default, this is "vim".
 filename = "vim"
+
+# Specifies the argument to pass to the editor to open the file in read-only mode. By default, this is "-R".
+read-only-arg = "-R"
 
 
 # Doom-specific settings.
