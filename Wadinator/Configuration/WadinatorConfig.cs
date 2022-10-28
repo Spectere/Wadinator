@@ -31,6 +31,12 @@ public class WadinatorConfig {
     public bool UseHeretic { get; set; } = false;
 
     /// <summary>
+    /// Should the matching text file's contents be printed?
+    /// </summary>
+    [TomlProperty("print-contents")]
+    public bool PrintContents { get; set; } = false;
+
+    /// <summary>
     /// An object containing text editor configuration.
     /// </summary>
     [TomlProperty("editor")]
