@@ -13,6 +13,17 @@ log-rng-results = true
 # the -doom switch. This defaults to false.
 use-heretic = false
 
+# The setting that controls the text file finder's output. If this is set to true, the found text file associated with
+# a WAD will be printed into the console. Otherwise, it will output a command to open it in a given text editor, which
+# can be customised in the [text.editor] section below.
+print-contents = false
+
+# Text editor settings.
+[text.editor]
+
+# The path to the editor's executable.
+filename = "vim"
+
 
 # Doom-specific settings.
 [games.doom]
