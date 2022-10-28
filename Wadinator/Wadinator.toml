@@ -18,6 +18,7 @@ use-heretic = false
 # can be customised in the [editor] section below.
 print-contents = false
 
+
 # Text editor settings.
 [editor]
 
