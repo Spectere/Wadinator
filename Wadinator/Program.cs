@@ -52,7 +52,7 @@ static string? GetMatchingTextFile(string path) {
 
     // Attempt to find a matching text file.
     var textFiles = Directory.GetFiles(
-        Path.GetDirectoryName(path) ?? "", 
+        Path.GetDirectoryName(path) ?? "",
         Path.GetFileName(path),
         new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive }
     );
@@ -113,7 +113,7 @@ if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
         "    -(no)-log       Enables or disables reading/writing from/to the played file.",
         "    -heretic        Specifies that the WADs in the directory were designed for",
         "                    Heretic.",
-        "    -(no-)find-txt  Enables or disables the finding of a WAD's specified text" +
+        "    -(no-)find-txt  Enables or disables the finding of a WAD's specified text",
         "                    file.",
         ""
     );
@@ -344,7 +344,7 @@ if(game == Game.Heretic) {
             Print(
                 "    21 - MBF21",
                 "",
-                "  When in doubt, check the WAD's readme!"
+                "  When in doubt, check the WAD's readme or text file!"
             );
         }
     }
@@ -352,6 +352,8 @@ if(game == Game.Heretic) {
 
 // Lastly, print if the WAD has a text file.
 if(findText) {
+    Print("");
+
     if(wadTxt != null) {
         if(config.PrintContents) {
             Print(
