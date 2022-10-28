@@ -21,10 +21,10 @@ print-contents = false
 # Text editor settings.
 [editor]
 
-# The path to the editor's executable. By default, this is "vim".
+# The path to the editor's executable.
 filename = "vim"
 
-# Specifies the argument to pass to the editor to open the file in read-only mode. By default, this is "-R".
+# Specifies the argument to pass to the editor to open the file in read-only mode.
 read-only-arg = "-R"
 
 
