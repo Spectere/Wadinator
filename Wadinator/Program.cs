@@ -40,7 +40,7 @@ static string? GetRandomFile(string path, bool recurse, bool useRngLog) {
     return wadFileList[Random.Shared.Next(wadFileList.Count)];
 }
 
-static string? GetMatchingTextFile(string path) {
+static string? GetMatchingTextFile(string path, bool dZoneCompat) {
     // If the path isn't a WAD, something's gone wrong.
     if(!path.EndsWith(".wad", StringComparison.InvariantCultureIgnoreCase)) {
         Print("error: this is not a WAD!");
@@ -48,15 +48,51 @@ static string? GetMatchingTextFile(string path) {
     }
 
     // Replace .wad with .txt for the search pattern.
-    path = path.Remove(path.Length - 3) + "txt";
+    var noExt = path.Remove(path.Length - 4);
+    path = noExt + ".txt";
+    
+    // Get the directory name and file name of the potential text file.
+    var txtDir = Path.GetDirectoryName(path) ?? "";
+    var txtName = Path.GetFileName(path);
+    var txtNoExt = Path.GetFileName(noExt);
+
+    var searchOpts = new EnumerationOptions {
+        MatchCasing = MatchCasing.CaseInsensitive,
+        RecurseSubdirectories = true
+    };
 
     // Attempt to find a matching text file.
-    var textFiles = Directory.GetFiles(
-        Path.GetDirectoryName(path) ?? "",
-        Path.GetFileName(path),
-        new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive }
-    );
+    var textFiles = new List<string>(Directory.GetFiles(txtDir, txtName, searchOpts));
+    
+    // If this also is for D!Zone, look for the text file in both:
+    // - [WADDIR]/TXT/[WADNAME]/[WADNAME].TXT
+    // - [WADDIR]/TXT/[WADNAME]/MINE.TXT
+    if(dZoneCompat) {
+        var dzTextDir = Path.Combine(
+            Path.GetDirectoryName(path) ?? ".",
+            "TXT"
+        );
 
+        var dzSpecificDir = Path.Combine(dzTextDir, txtNoExt);
+
+        // Perform the searches for both listed text files.
+        // Sadly this has to be done in two searches as GetFiles does not support regex.
+        if(Directory.Exists(dzTextDir)) {
+            var dzResultName = Directory.GetFiles(dzTextDir, txtName, searchOpts);
+            textFiles = textFiles.Concat(dzResultName).ToList();
+        }
+
+        if(Directory.Exists(dzSpecificDir)) {
+            var dzResultMine = Directory.GetFiles(
+                dzSpecificDir,
+                "MINE.TXT",
+                searchOpts
+            );
+
+            textFiles = textFiles.Concat(dzResultMine).ToList();
+        }
+    }
+    
     // Return the file, or null if none found.
     return textFiles.FirstOrDefault();
 }
@@ -115,6 +151,10 @@ if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
         "                    Heretic.",
         "    -(no-)find-txt  Enables or disables the finding of a WAD's specified text",
         "                    file.",
+        "    -dzone          Enables D!Zone compatibility when searching for text files.",
+        "                    This means it will search for either:",
+        "                    - [WADDIR]/TEXT/[WADNAME]/[WADNAME].TXT",
+        "                    - [WADDIR]/TEXT/[WADNAME]/MINE.TXT ",
         ""
     );
     return 1;
@@ -123,6 +163,7 @@ if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
 // Handle command line parameters as lazily as possible.
 var game = config.UseHeretic ? Game.Heretic : Game.Doom;
 var findText = false;
+var dZoneCompat = false;
 var path = config.DefaultPath;
 foreach(var arg in args) {
     switch(arg) {
@@ -160,6 +201,11 @@ foreach(var arg in args) {
         case "-ft":
         case "-find-txt":
             findText = true;
+            break;
+        
+        case "-dz":
+        case "-dzone":
+            dZoneCompat = true;
             break;
 
         default:
@@ -199,10 +245,10 @@ if(Directory.Exists(path)) {
     return 1;
 }
 
-// Attempt to find the .txt file for the WAD if requested.
+// Attempt to find the .txt file for the WAD if requested, with D!Zone compatibility if requested.
 string? wadTxt = null;
 if(findText) {
-    wadTxt = GetMatchingTextFile(path);
+    wadTxt = GetMatchingTextFile(path, dZoneCompat);
 }
 
 /**************************
