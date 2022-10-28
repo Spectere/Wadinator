@@ -40,6 +40,27 @@ static string? GetRandomFile(string path, bool recurse, bool useRngLog) {
     return wadFileList[Random.Shared.Next(wadFileList.Count)];
 }
 
+static string? GetMatchingTextFile(string path) {
+    // If the path isn't a WAD, something's gone wrong.
+    if(!path.EndsWith(".wad", StringComparison.InvariantCultureIgnoreCase)) {
+        Print("error: this is not a WAD!");
+        return null;
+    }
+
+    // Replace .wad with .txt for the search pattern.
+    path = path.Remove(path.Length - 3) + "txt";
+
+    // Attempt to find a matching text file.
+    var textFiles = Directory.GetFiles(
+        Path.GetDirectoryName(path) ?? "", 
+        Path.GetFileName(path),
+        new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive }
+    );
+
+    // Return the file, or null if none found.
+    return textFiles.FirstOrDefault();
+}
+
 // Basically just calls Console.WriteLine multiple times. :]
 // Please use it across the board for the sake of consistency.
 static void Print(params string[] lines) {
@@ -84,14 +105,16 @@ if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
         "  if you only want the program to estimate the appropriate complevel for a single",
         "  file.",
         "",
-        "    -doom          Specifies that the WADs in the directory were designed for",
-        "                   Doom/Doom II.",
-        "    -(no-)recurse  Scan directory recursively (only valid if a directory is",
-        "                   specified). Use 'no-recurse' to explicitly disable this",
-        "                   behavior.",
-        "    -(no)-log      Enables or disables reading/writing from/to the played file.",
-        "    -heretic       Specifies that the WADs in the directory were designed for",
-        "                   Heretic.",
+        "    -doom           Specifies that the WADs in the directory were designed for",
+        "                    Doom/Doom II.",
+        "    -(no-)recurse   Scan directory recursively (only valid if a directory is",
+        "                    specified). Use 'no-recurse' to explicitly disable this",
+        "                    behavior.",
+        "    -(no)-log       Enables or disables reading/writing from/to the played file.",
+        "    -heretic        Specifies that the WADs in the directory were designed for",
+        "                    Heretic.",
+        "    -(no-)find-txt  Enables or disables the finding of a WAD's specified text" +
+        "                    file.",
         ""
     );
     return 1;
@@ -99,6 +122,7 @@ if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
 
 // Handle command line parameters as lazily as possible.
 var game = config.UseHeretic ? Game.Heretic : Game.Doom;
+var findText = false;
 var path = config.DefaultPath;
 foreach(var arg in args) {
     switch(arg) {
@@ -126,6 +150,16 @@ foreach(var arg in args) {
 
         case "-heretic":
             game = Game.Heretic;
+            break;
+        
+        case "-no-ft":
+        case "-no-find-txt":
+            findText = false;
+            break;
+            
+        case "-ft":
+        case "-find-txt":
+            findText = true;
             break;
 
         default:
@@ -163,6 +197,12 @@ if(Directory.Exists(path)) {
     // Naughty user!
     Print("error: the specified path does not exist!");
     return 1;
+}
+
+// Attempt to find the .txt file for the WAD if requested.
+string? wadTxt = null;
+if(findText) {
+    wadTxt = GetMatchingTextFile(path);
 }
 
 /**************************
@@ -222,6 +262,8 @@ Print(
     "  Here, have a convenient command line:",
     ""
 );
+
+
 
 if(game == Game.Heretic) {
     // Heretic
@@ -305,6 +347,27 @@ if(game == Game.Heretic) {
                 "  When in doubt, check the WAD's readme!"
             );
         }
+    }
+}
+
+// Lastly, print if the WAD has a text file.
+if(findText) {
+    if(wadTxt != null) {
+        if(config.PrintContents) {
+            Print(
+                "  The WAD has an associated text file, here is its content:",
+                "",
+                File.ReadAllText(wadTxt)
+            );
+        } else {
+            Print(
+                "  The WAD has an associated text file, here is a command line to view it:",
+                "",
+               $"    {config.Editor.ExecutableName} {config.Editor.ReadOnlyArg} {wadTxt}"
+            );
+        }
+    } else {
+        Print("  The WAD has no associated text file.");
     }
 }
 
