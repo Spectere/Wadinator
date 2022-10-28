@@ -151,10 +151,11 @@ if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
         "                    Heretic.",
         "    -(no-)find-txt  Enables or disables the finding of a WAD's specified text",
         "                    file.",
-        "    -dzone          Enables D!Zone compatibility when searching for text files.",
-        "                    This means it will search for either:",
+        "    -(no-)dzone     Enables or disables D!Zone compatibility when searching for",
+        "                    text files. This means it will search for either:",
         "                    - [WADDIR]/TEXT/[WADNAME]/[WADNAME].TXT",
         "                    - [WADDIR]/TEXT/[WADNAME]/MINE.TXT ",
+        "                    As well as the directory of the WAD.",
         ""
     );
     return 1;
@@ -162,8 +163,6 @@ if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
 
 // Handle command line parameters as lazily as possible.
 var game = config.UseHeretic ? Game.Heretic : Game.Doom;
-var findText = false;
-var dZoneCompat = false;
 var path = config.DefaultPath;
 foreach(var arg in args) {
     switch(arg) {
@@ -195,17 +194,22 @@ foreach(var arg in args) {
         
         case "-no-ft":
         case "-no-find-txt":
-            findText = false;
+            config.ReadmeTexts.SearchForText = false;
             break;
             
         case "-ft":
         case "-find-txt":
-            findText = true;
+            config.ReadmeTexts.SearchForText = true;
+            break;
+        
+        case "-no-dz":
+        case "-no-dzone":
+            config.ReadmeTexts.DZoneCompat = false;
             break;
         
         case "-dz":
         case "-dzone":
-            dZoneCompat = true;
+            config.ReadmeTexts.DZoneCompat = true;
             break;
 
         default:
@@ -247,8 +251,8 @@ if(Directory.Exists(path)) {
 
 // Attempt to find the .txt file for the WAD if requested, with D!Zone compatibility if requested.
 string? wadTxt = null;
-if(findText) {
-    wadTxt = GetMatchingTextFile(path, dZoneCompat);
+if(config.ReadmeTexts.SearchForText) {
+    wadTxt = GetMatchingTextFile(path, config.ReadmeTexts.DZoneCompat);
 }
 
 /**************************
@@ -397,11 +401,11 @@ if(game == Game.Heretic) {
 }
 
 // Lastly, print if the WAD has a text file.
-if(findText) {
+if(config.ReadmeTexts.SearchForText) {
     Print("");
 
     if(wadTxt != null) {
-        if(config.PrintContents) {
+        if(config.ReadmeTexts.PrintContents) {
             Print(
                 "  The WAD has an associated text file, here is its content:",
                 "",

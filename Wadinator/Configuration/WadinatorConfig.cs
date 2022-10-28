@@ -31,10 +31,10 @@ public class WadinatorConfig {
     public bool UseHeretic { get; set; } = false;
 
     /// <summary>
-    /// Should the matching text file's contents be printed?
+    /// An object containing the text file finder configuration.
     /// </summary>
-    [TomlProperty("print-contents")]
-    public bool PrintContents { get; set; } = false;
+    [TomlProperty("readme-texts")]
+    public ReadmeTexts ReadmeTexts { get; set; } = new();
 
     /// <summary>
     /// An object containing text editor configuration.
