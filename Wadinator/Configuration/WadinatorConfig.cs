@@ -31,6 +31,12 @@ public class WadinatorConfig {
     public bool UseHeretic { get; set; } = false;
 
     /// <summary>
+    /// An object containing text editor configuration.
+    /// </summary>
+    [TomlProperty("editor")]
+    public Editor Editor { get; set; } = new();
+
+    /// <summary>
     /// An object containing game-specific configuration.
     /// </summary>
     [TomlProperty("games")]
