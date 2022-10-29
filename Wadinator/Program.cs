@@ -40,7 +40,7 @@ static string? GetRandomFile(string path, bool recurse, bool useRngLog) {
     return wadFileList[Random.Shared.Next(wadFileList.Count)];
 }
 
-static string? GetMatchingTextFiles(string path, bool dZoneCompat) {
+static string? GetMatchingTextFile(string path, bool dZoneCompat) {
     // If the path isn't a WAD, something's gone wrong.
     if(!path.EndsWith(".wad", StringComparison.InvariantCultureIgnoreCase)) {
         Print("error: this is not a WAD!");
@@ -66,7 +66,7 @@ static string? GetMatchingTextFiles(string path, bool dZoneCompat) {
 
     // Attempt to find a matching text file, located in either:
     // - [WADDIR]/[WADNAME].TXT
-    // - [WADDIR]/TXT/*/[WADNAME.TXT]
+    // - [WADDIR]/TXT/*/[WADNAME].TXT
     var textFiles = new List<string>(Directory.GetFiles(txtDir, txtName, searchOpts));
     
     // If this also is for D!Zone, look for the text file in the form of [WADDIR]/TXT/[WADNAME]/*.TXT.
@@ -247,7 +247,7 @@ if(Directory.Exists(path)) {
 // Attempt to find the .txt file for the WAD if requested, with D!Zone compatibility if requested.
 string? wadTxt = null;
 if(config.ReadmeTexts.SearchForText) {
-    wadTxt = GetMatchingTextFiles(path, config.ReadmeTexts.DZoneCompat);
+    wadTxt = GetMatchingTextFile(path, config.ReadmeTexts.DZoneCompat);
 }
 
 /**************************
