@@ -40,6 +40,58 @@ static string? GetRandomFile(string path, bool recurse, bool useRngLog) {
     return wadFileList[Random.Shared.Next(wadFileList.Count)];
 }
 
+static string? GetMatchingTextFile(string path, bool dZoneCompat) {
+    // If the path isn't a WAD, something's gone wrong.
+    if(!path.EndsWith(".wad", StringComparison.InvariantCultureIgnoreCase)) {
+        Print("error: this is not a WAD!");
+        return null;
+    }
+
+    // Replace .wad with .txt for the search pattern.
+    var noExt = path.Remove(path.Length - 4);
+    path = noExt + ".txt";
+    
+    // Get the directory name and file name of the potential text file.
+    var txtDir = Path.GetDirectoryName(path) ?? "";
+    var txtName = Path.GetFileName(path);
+    var txtNoExt = Path.GetFileName(noExt);
+
+    // Note that recursive search is only required if searching for things in the context of a
+    // D!Zone disk. Since the TXT directory lives in the same directory as all the WADs, the
+    // initial search should also recurse and find a text file with a matching filename.
+    var searchOpts = new EnumerationOptions {
+        MatchCasing = MatchCasing.CaseInsensitive,
+        RecurseSubdirectories = dZoneCompat
+    };
+
+    // Attempt to find a matching text file, located in either:
+    // - [WADDIR]/[WADNAME].TXT
+    // - [WADDIR]/TXT/*/[WADNAME].TXT
+    var textFiles = new List<string>(Directory.GetFiles(txtDir, txtName, searchOpts));
+    
+    // If this also is for D!Zone, look for the text file in the form of [WADDIR]/TXT/[WADNAME]/*.TXT.
+    if(dZoneCompat) {
+        var dzSpecificDir = Path.Combine(
+            Path.GetDirectoryName(path) ?? ".",
+            "TXT",
+            txtNoExt
+        );
+
+        if(Directory.Exists(dzSpecificDir)) {
+            var dzResultMine = Directory.GetFiles(
+                dzSpecificDir,
+                "*.txt",
+                searchOpts
+            );
+
+            textFiles.AddRange(dzResultMine);
+        }
+    }
+    
+    // Return any contender files.
+    return textFiles.FirstOrDefault();
+}
+
 // Basically just calls Console.WriteLine multiple times. :]
 // Please use it across the board for the sake of consistency.
 static void Print(params string[] lines) {
@@ -84,14 +136,21 @@ if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
         "  if you only want the program to estimate the appropriate complevel for a single",
         "  file.",
         "",
-        "    -doom          Specifies that the WADs in the directory were designed for",
-        "                   Doom/Doom II.",
-        "    -(no-)recurse  Scan directory recursively (only valid if a directory is",
-        "                   specified). Use 'no-recurse' to explicitly disable this",
-        "                   behavior.",
-        "    -(no)-log      Enables or disables reading/writing from/to the played file.",
-        "    -heretic       Specifies that the WADs in the directory were designed for",
-        "                   Heretic.",
+        "    -doom           Specifies that the WADs in the directory were designed for",
+        "                    Doom/Doom II.",
+        "    -(no-)recurse   Scan directory recursively (only valid if a directory is",
+        "                    specified). Use 'no-recurse' to explicitly disable this",
+        "                    behavior.",
+        "    -(no)-log       Enables or disables reading/writing from/to the played file.",
+        "    -heretic        Specifies that the WADs in the directory were designed for",
+        "                    Heretic.",
+        "    -(no-)find-txt  Enables or disables the finding of a WAD's specified text",
+        "                    file.",
+        "    -(no-)dzone     Enables or disables D!Zone compatibility when searching for",
+        "                    text files. This means it will search for either",
+        "                    [WADDIR]/TXT/*/[WADNAME].TXT or any such text file located",
+        "                    in [WADDIR]/TXT/[WADNAME]/, as well as the directory of the",
+        "                    WAD.",
         ""
     );
     return 1;
@@ -126,6 +185,26 @@ foreach(var arg in args) {
 
         case "-heretic":
             game = Game.Heretic;
+            break;
+        
+        case "-no-ft":
+        case "-no-find-txt":
+            config.ReadmeTexts.SearchForText = false;
+            break;
+            
+        case "-ft":
+        case "-find-txt":
+            config.ReadmeTexts.SearchForText = true;
+            break;
+        
+        case "-no-dz":
+        case "-no-dzone":
+            config.ReadmeTexts.DZoneCompat = false;
+            break;
+        
+        case "-dz":
+        case "-dzone":
+            config.ReadmeTexts.DZoneCompat = true;
             break;
 
         default:
@@ -163,6 +242,12 @@ if(Directory.Exists(path)) {
     // Naughty user!
     Print("error: the specified path does not exist!");
     return 1;
+}
+
+// Attempt to find the .txt file for the WAD if requested, with D!Zone compatibility if requested.
+string? wadTxt = null;
+if(config.ReadmeTexts.SearchForText) {
+    wadTxt = GetMatchingTextFile(path, config.ReadmeTexts.DZoneCompat);
 }
 
 /**************************
@@ -222,6 +307,8 @@ Print(
     "  Here, have a convenient command line:",
     ""
 );
+
+
 
 if(game == Game.Heretic) {
     // Heretic
@@ -302,9 +389,32 @@ if(game == Game.Heretic) {
             Print(
                 "    21 - MBF21",
                 "",
-                "  When in doubt, check the WAD's readme!"
+                "  When in doubt, check the WAD's readme or text file!"
             );
         }
+    }
+}
+
+// Lastly, print if the WAD has a text file.
+if(config.ReadmeTexts.SearchForText) {
+    Print("");
+
+    if(wadTxt != null) {
+        if(config.ReadmeTexts.PrintContents) {
+            Print(
+                "  The WAD has an associated text file, here is its content:",
+                "",
+                File.ReadAllText(wadTxt)
+            );
+        } else {
+            Print(
+                "  The WAD has an associated text file, here is a command line to view it:",
+                "",
+               $"    {config.Editor.ExecutableName} {config.Editor.ReadOnlyArg} {wadTxt}"
+            );
+        }
+    } else {
+        Print("  The WAD has no associated text file.");
     }
 }
 

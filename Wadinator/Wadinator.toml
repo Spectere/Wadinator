@@ -13,6 +13,34 @@ log-rng-results = true
 # the -doom switch. This defaults to false.
 use-heretic = false
 
+# Readme / text file finder settings.
+[readme-texts]
+
+# This setting controls whether readmes / text files are searched for by default.
+search-for-text = true
+
+# This setting enables or disables D!Zone compatibility, as they store their text files in one of three manners:
+# - Right next to the WAD with the same file name.
+# - In [WADDIR]/TXT/*/WADNAME.TXT.
+# - In [WADDIR]/TXT/[WADNAME]/*.TXT.
+# Disabling this should theoretically make the finder faster if you do not need D!Zone compatibility.
+dzone-compat = true
+
+# The setting that controls the text file finder's output. If this is set to true, the found text file associated with
+# a WAD will be printed into the console. Otherwise, it will output a command to open it in a given text editor, which
+# can be customised in the [editor] section below.
+print-contents = false
+
+
+# Text editor settings.
+[editor]
+
+# The path to the editor's executable.
+filename = "vim"
+
+# Specifies the argument to pass to the editor to open the file in read-only mode.
+read-only-arg = "-R"
+
 
 # Doom-specific settings.
 [games.doom]
