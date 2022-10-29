@@ -40,7 +40,7 @@ static string? GetRandomFile(string path, bool recurse, bool useRngLog) {
     return wadFileList[Random.Shared.Next(wadFileList.Count)];
 }
 
-static string? GetMatchingTextFile(string path, bool dZoneCompat) {
+static string? GetMatchingTextFiles(string path, bool dZoneCompat) {
     // If the path isn't a WAD, something's gone wrong.
     if(!path.EndsWith(".wad", StringComparison.InvariantCultureIgnoreCase)) {
         Print("error: this is not a WAD!");
@@ -56,44 +56,39 @@ static string? GetMatchingTextFile(string path, bool dZoneCompat) {
     var txtName = Path.GetFileName(path);
     var txtNoExt = Path.GetFileName(noExt);
 
+    // Note that recursive search is only required if searching for things in the context of a
+    // D!Zone disk. Since the TXT directory lives in the same directory as all the WADs, the
+    // initial search should also recurse and find a text file with a matching filename.
     var searchOpts = new EnumerationOptions {
         MatchCasing = MatchCasing.CaseInsensitive,
-        RecurseSubdirectories = true
+        RecurseSubdirectories = dZoneCompat
     };
 
-    // Attempt to find a matching text file.
+    // Attempt to find a matching text file, located in either:
+    // - [WADDIR]/[WADNAME].TXT
+    // - [WADDIR]/TXT/*/[WADNAME.TXT]
     var textFiles = new List<string>(Directory.GetFiles(txtDir, txtName, searchOpts));
     
-    // If this also is for D!Zone, look for the text file in both:
-    // - [WADDIR]/TXT/[WADNAME]/[WADNAME].TXT
-    // - [WADDIR]/TXT/[WADNAME]/MINE.TXT
+    // If this also is for D!Zone, look for the text file in the form of [WADDIR]/TXT/[WADNAME]/*.TXT.
     if(dZoneCompat) {
-        var dzTextDir = Path.Combine(
+        var dzSpecificDir = Path.Combine(
             Path.GetDirectoryName(path) ?? ".",
-            "TXT"
+            "TXT",
+            txtNoExt
         );
-
-        var dzSpecificDir = Path.Combine(dzTextDir, txtNoExt);
-
-        // Perform the searches for both listed text files.
-        // Sadly this has to be done in two searches as GetFiles does not support regex.
-        if(Directory.Exists(dzTextDir)) {
-            var dzResultName = Directory.GetFiles(dzTextDir, txtName, searchOpts);
-            textFiles = textFiles.Concat(dzResultName).ToList();
-        }
 
         if(Directory.Exists(dzSpecificDir)) {
             var dzResultMine = Directory.GetFiles(
                 dzSpecificDir,
-                "MINE.TXT",
+                "*.txt",
                 searchOpts
             );
 
-            textFiles = textFiles.Concat(dzResultMine).ToList();
+            textFiles.AddRange(dzResultMine);
         }
     }
     
-    // Return the file, or null if none found.
+    // Return any contender files.
     return textFiles.FirstOrDefault();
 }
 
@@ -152,10 +147,10 @@ if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
         "    -(no-)find-txt  Enables or disables the finding of a WAD's specified text",
         "                    file.",
         "    -(no-)dzone     Enables or disables D!Zone compatibility when searching for",
-        "                    text files. This means it will search for either:",
-        "                    - [WADDIR]/TEXT/[WADNAME]/[WADNAME].TXT",
-        "                    - [WADDIR]/TEXT/[WADNAME]/MINE.TXT ",
-        "                    As well as the directory of the WAD.",
+        "                    text files. This means it will search for either",
+        "                    [WADDIR]/TXT/*/[WADNAME].TXT or any such text file located",
+        "                    in [WADDIR]/TXT/[WADNAME]/, as well as the directory of the",
+        "                    WAD.",
         ""
     );
     return 1;
@@ -252,7 +247,7 @@ if(Directory.Exists(path)) {
 // Attempt to find the .txt file for the WAD if requested, with D!Zone compatibility if requested.
 string? wadTxt = null;
 if(config.ReadmeTexts.SearchForText) {
-    wadTxt = GetMatchingTextFile(path, config.ReadmeTexts.DZoneCompat);
+    wadTxt = GetMatchingTextFiles(path, config.ReadmeTexts.DZoneCompat);
 }
 
 /**************************

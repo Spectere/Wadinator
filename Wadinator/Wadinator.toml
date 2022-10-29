@@ -21,8 +21,8 @@ search-for-text = true
 
 # This setting enables or disables D!Zone compatibility, as they store their text files in one of three manners:
 # - Right next to the WAD with the same file name.
-# - In [WADDIR]/TXT/[WADNAME]/WADNAME.TXT.
-# - In [WADDIR]/TXT/[WADNAME]/MINE.TXT.
+# - In [WADDIR]/TXT/*/WADNAME.TXT.
+# - In [WADDIR]/TXT/[WADNAME]/*.TXT.
 # Disabling this should theoretically make the finder faster if you do not need D!Zone compatibility.
 dzone-compat = true
 
