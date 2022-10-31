@@ -125,7 +125,8 @@ var configToml = TomlParser.ParseFile(configPath);
 var config = TomletMain.To<WadinatorConfig>(configToml);
 
 // Check arguments.
-if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
+var helpArg = args.Contains("-help") || args.Contains("-h");
+if((args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) || helpArg) {
     var startCommand = Environment.CommandLine.Split(' ')[0];
     Print(
         $"usage: {startCommand} [options] <path/file>",
@@ -153,7 +154,7 @@ if(args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) {
         "                    WAD.",
         ""
     );
-    return 1;
+    return 0;
 }
 
 // Handle command line parameters as lazily as possible.
