@@ -20,7 +20,7 @@ static string? GetRandomFile(string path, bool recurse, bool useRngLog) {
 
     // Read the "played" file (if it exists).
     if(useRngLog && File.Exists(playedFileName)) {
-        var playedFiles = new List<string>(File.ReadAllText(playedFileName).Split('\n'));
+        var playedFiles = new List<string>(File.ReadAllText(playedFileName).Split(Environment.NewLine).Where(e => !string.IsNullOrWhiteSpace(e)));
 
         // Remove the played WADs from the list.
         for(var index = wadFileList.Count - 1; index >= 0; index--) {
@@ -227,6 +227,11 @@ foreach(var arg in args) {
             path = arg;
             break;
     }
+}
+
+// If we're on Windows, transform the path to ensure that we're using backslashes.
+if(OperatingSystem.IsWindows()) {
+    path = path.Replace("/", "\\");
 }
 
 // Determine if the passed path is a file or directory (or if it doesn't exist at all).
