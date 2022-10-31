@@ -8,8 +8,7 @@ appropriate complevel for it. The randomization is optional, as giving the
 Wadinator the path to a WAD (rather than a directory) will cause it to skip the
 random draw and simply analyze the file.
 
-The Wadinator is intended for use with DSDA-Doom and Crispy Heretic. Only the
-Doom WAD format is supported at this time.
+Only the Doom WAD format is supported at this time.
 
 ## Usage
 
