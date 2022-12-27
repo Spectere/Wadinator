@@ -262,6 +262,57 @@ public static class Lumpalyzer {
     }
 
     /// <summary>
+    /// Counts the number of enemies in a THINGS lump.
+    /// </summary>
+    /// <param name="thingStream">The THINGS lump to analyze.</param>
+    /// <param name="isHeretic"><c>true</c> if this is a Heretic map, otherwise <c>false</c>.</param>
+    /// <returns>The number of enemies in a given map.</returns>
+    public static int GetEnemyCount(Stream thingStream, bool isHeretic) {
+        var doomEnemyThingIds = new List<ushort> {
+            7,      // Spiderdemon
+            9,      // Shotgun Guy
+            16,     // Cyberdemon
+            58,     // Specter
+            64,     // Arch-Vile
+            65,     // Heavy Weapon Dude
+            66,     // Revenant
+            67,     // Mancubus
+            68,     // Arachnotron
+            69,     // Hell Knight
+            71,     // Pain Elemental
+            72,     // Commander Keen
+            84,     // Wolfenstein SS
+            3001,   // Imp
+            3002,   // Demon
+            3003,   // Baron of Hell
+            3004,   // Zombieman
+            3005,   // Cacodemon
+            3006    // Lost Soul
+        };
+
+        var hereticEnemyThingIds = new List<ushort> {
+            5,      // Fire Gargoyle
+            6,      // Iron Lich
+            7,      // D'Sparil
+            9,      // Maulotaur
+            15,     // Disciple of D'Sparil
+            45,     // Nitrogolem
+            46,     // Nitrogolem Ghost
+            64,     // Undead Warrior
+            65,     // Undead Warrior Ghost
+            66,     // Gargoyle
+            68,     // Golem
+            69,     // Golem Ghost
+            70,     // Weredragon
+            90,     // Sabreclaw
+            92      // Ophidian
+        };
+
+        var thingIdList = isHeretic ? hereticEnemyThingIds : doomEnemyThingIds;
+        return ReadThings(thingStream).Count(thing => thingIdList.Contains(thing.Type));
+    }
+
+    /// <summary>
     /// Determines whether this WAD's E1M8 contains sector tag 666, along with unexpected Cyberdemon(s) and/or Spider Mastermind(s).
     /// </summary>
     /// <param name="mapName">The map name.</param>

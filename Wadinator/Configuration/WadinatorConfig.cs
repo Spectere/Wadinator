@@ -37,6 +37,12 @@ public class WadinatorConfig {
     public ReadmeTexts ReadmeTexts { get; set; } = new();
 
     /// <summary>
+    /// An object containing WAD analysis configuration.
+    /// </summary>
+    [TomlProperty("analysis")]
+    public Analysis Analysis { get; set; } = new();
+
+    /// <summary>
     /// An object containing text editor configuration.
     /// </summary>
     [TomlProperty("editor")]

@@ -8,7 +8,8 @@ namespace Wadinator;
 public class Analyzer {
     private List<WadDirectoryEntry>? _mapList;
     private readonly WadReader _wad;
-    
+    private AnalysisSettings _analysisSettings;
+
     // Map List Regex
     private static readonly Regex AllMapsRegEx = new("^(E.M.|MAP..)$");
     private static readonly Regex EpisodeAndMapRegEx = new("^(E.M.)$");
@@ -26,8 +27,10 @@ public class Analyzer {
     /// Initializes the wad analyzer.
     /// </summary>
     /// <param name="wadReader">A <see cref="WadReader"/> containing a loaded WAD.</param>
-    public Analyzer(in WadReader wadReader) {
+    /// <param name="analysisSettings">Settings for the WAD analyzer.</param>
+    public Analyzer(in WadReader wadReader, AnalysisSettings analysisSettings) {
         _wad = wadReader;
+        _analysisSettings = analysisSettings;
     }
 
     /// <summary>
@@ -35,14 +38,23 @@ public class Analyzer {
     /// </summary>
     /// <returns>An <see cref="AnalysisResults"/> object containing information about the loaded WAD.</returns>
     public AnalysisResults AnalyzeWad() {
+        // Detect complevel and mismatched bosses.
         var (compLevel, hasMismatchedBosses) = DetectCompLevelAndMismatchedBosses();
-
+        
+        // Detect deathmatch WADs.
+        var isDeathmatchWad = false;
+        if(_analysisSettings.DetectDeathmatchWads) {
+            isDeathmatchWad = DetectDeathmatchWad();
+        }
+        
+        // Return everything.
         return new AnalysisResults(
             CompLevel: compLevel,
             ContainsExMxMaps: UsesEpisodeAndMap,
             ContainsMapXxMaps: UsesMapOnly,
             HasMismatchedBosses: hasMismatchedBosses,
-            MapList: MapList
+            MapList: MapList,
+            IsDeathmatchWad: isDeathmatchWad
         );
     }
 
@@ -83,6 +95,22 @@ public class Analyzer {
         }
         
         return (compLevel, hasMismatchedBosses);
+    }
+
+    /// <summary>
+    /// Detects whether or not the WAD is a deathmatch WAD.
+    /// </summary>
+    /// <returns><c>true</c> if the WAD is determined to be a deathmatch WAD, otherwise <c>false</c>.</returns>
+    private bool DetectDeathmatchWad() {
+        var thingLumps = _wad.Lumps.Where(x => x.Name == "THINGS");
+        var totalEnemyCount = 0;
+
+        foreach(var thingLump in thingLumps) {
+            var thingStream = _wad.GetLump(thingLump);
+            totalEnemyCount += Lumpalyzer.GetEnemyCount(thingStream, _analysisSettings.IsHeretic);
+        }
+
+        return _analysisSettings.DeathmatchMapEnemyThreshold >= totalEnemyCount;
     }
 
     /// <summary>

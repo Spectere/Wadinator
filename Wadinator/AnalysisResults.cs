@@ -9,10 +9,13 @@ namespace Wadinator;
 /// <param name="HasMismatchedBosses"><c>true</c> if this WAD contains Cyberdemon(s) or Spider Mastermind(s), as well as sectors with
 /// tag 666, in E1M8.</param>
 /// <param name="MapList">A list of maps contains in this WAD.</param>
+/// <param name="IsDeathmatchWad"><c>true</c> if this WAD is flagged as a deathmatch WAD. This will be set to <c>false</c> if
+/// deathmatch WAD detection is disabled, or if the check returns negative.</param>
 public record AnalysisResults(
     CompLevel CompLevel,
     bool ContainsExMxMaps,
     bool ContainsMapXxMaps,
     bool HasMismatchedBosses,
-    List<WadDirectoryEntry> MapList
+    List<WadDirectoryEntry> MapList,
+    bool IsDeathmatchWad
 );

@@ -236,12 +236,12 @@ if(OperatingSystem.IsWindows()) {
 
 // Determine if the passed path is a file or directory (or if it doesn't exist at all).
 var pathIsDirectory = false;
+var originalPath = path;
 
 if(Directory.Exists(path)) {
     pathIsDirectory = true;
-    path = GetRandomFile(path, config.RecurseDirectories, config.LogRandomWadResults);
 
-    if(path is null) {
+    if((path = GetRandomFile(originalPath, config.RecurseDirectories, config.LogRandomWadResults)) is null) {
         return 0;
     }
 } else if(!File.Exists(path)) {
@@ -259,18 +259,47 @@ if(config.ReadmeTexts.SearchForText) {
 /**************************
  * Perform file analysis. *
  **************************/
-var wad = new WadReader(path);
+AnalysisResults analysisResults;
 
-// Analyze the WAD to fetch the map list, determine the complevel, etc.
-var analysisResults = new Analyzer(wad).AnalyzeWad();
+do {
+    var wad = new WadReader(path);
 
-// Add the WAD to the played file.
-if(config.LogRandomWadResults && pathIsDirectory) {
-    var playedFileStream = File.AppendText(playedFileName);
-    playedFileStream.WriteLine(path);
-    playedFileStream.Flush();
-    playedFileStream.Close();
-}
+    // Configure the analyzer.
+    var analysisSettings = new AnalysisSettings {
+        DetectDeathmatchWads = config.Analysis.SkipDeathmatchMaps,
+        DeathmatchMapEnemyThreshold = config.Analysis.SkipDeathmatchThreshold,
+        IsHeretic = game == Game.Heretic
+    };
+
+    // Analyze the WAD to fetch the map list, determine the complevel, etc.
+    analysisResults = new Analyzer(wad, analysisSettings).AnalyzeWad();
+
+    // Determine whether or not the WAD should be logged.
+    var logWad = config.LogRandomWadResults && pathIsDirectory;
+
+    if(analysisResults.IsDeathmatchWad && pathIsDirectory) {
+        // Change the behavior somewhat if the WAD is detected as a deathmatch WAD.
+        logWad = config.Analysis.RecordSkippedMaps;
+        
+        // Alert the user that a map was skipped.
+        Print($">> Skipped deathmatch map: {path}...");
+    }
+    
+    // Add the WAD to the played file.
+    if(logWad) {
+        var playedFileStream = File.AppendText(playedFileName);
+        playedFileStream.WriteLine(path);
+        playedFileStream.Flush();
+        playedFileStream.Close();
+    }
+
+    if(analysisResults.IsDeathmatchWad && pathIsDirectory) {
+        // Pick a new WAD.
+        if((path = GetRandomFile(originalPath, config.RecurseDirectories, config.LogRandomWadResults)) is null) {
+            return 0;
+        }
+    }
+} while(analysisResults.IsDeathmatchWad && pathIsDirectory);
 
 // Attempt to detect the first map in the WAD and put together a warp string for it.
 var warpString = " -warp ";
@@ -372,7 +401,7 @@ if(game == Game.Heretic) {
                     "     2 - Doom v1.9"
                 );
             }
-
+            
             if(analysisResults.CompLevel == CompLevel.Doom19) {
                 Print(
                     "     3 - Ultimate Doom v1.9"
@@ -401,7 +430,7 @@ if(game == Game.Heretic) {
     }
 }
 
-// Lastly, print if the WAD has a text file.
+// Print if the WAD has a text file.
 if(config.ReadmeTexts.SearchForText) {
     Print("");
 
@@ -422,6 +451,15 @@ if(config.ReadmeTexts.SearchForText) {
     } else {
         Print("  The WAD has no associated text file.");
     }
+}
+
+// If the path is not a directory and is detected a deathmatch WAD, print a message.
+if(!pathIsDirectory && analysisResults.IsDeathmatchWad) {
+    Print(
+        "",
+        "",
+        $"  NOTE: This WAD contains fewer enemies than the configured threshold ({config.Analysis.SkipDeathmatchThreshold})."
+    );
 }
 
 Print("");

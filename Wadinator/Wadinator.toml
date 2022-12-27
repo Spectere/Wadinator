@@ -35,6 +35,21 @@ dzone-compat = true
 print-contents = false
 
 
+# WAD analysis settings.
+[analysis]
+
+# If this is set to true, the Wadinator will attempt to detect deathmatch WADs and skip them.
+skip-deathmatch-maps = false
+
+# If skip-deathmatch-maps is set to true, WADs that have this number of enemies, or fewer, will be skipped. Please
+# note that this count applies to the entire WAD, so if E1M1 has zero enemies and E1M2 has a hundred, the WAD will
+# still be selected for play.
+skip-deathmatch-threshold = 0
+
+# If this is set to true, maps that are skipped will be logged into the wadinator_played.txt file.
+record-skipped-maps = false
+
+
 # Text editor settings.
 [editor]
 
