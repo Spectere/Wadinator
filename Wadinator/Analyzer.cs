@@ -22,6 +22,13 @@ public class Analyzer {
     private bool HasUltimateDoomMaps => MapList.Any(map => UltimateDoomMapRegEx.IsMatch(map.Name));
     private bool UsesEpisodeAndMap => MapList.Any(x => EpisodeAndMapRegEx.IsMatch(x.Name));
     private bool UsesMapOnly => MapList.Any(x => x.Name.StartsWith("MAP"));
+    
+    // Map Lump Directory Entries
+    private struct MapLumpCollection {
+        public WadDirectoryEntry Linedefs;
+        public WadDirectoryEntry Sectors;
+        public WadDirectoryEntry Things;
+    }
 
     /// <summary>
     /// Initializes the wad analyzer.
@@ -66,18 +73,23 @@ public class Analyzer {
         var compLevel = CompLevel.Doom19;
         var hasMismatchedBosses = false;
         
-        // Perform a linedef/sector analysis to guess the correct complevel.
-        foreach(var lump in _wad.Lumps) {
-            // Indiscriminately check all supported lumps.
-            var resultComplevel = lump.Name switch {
-                "DEHACKED" => Lumpalyzer.AnalyzeDeHackEd(_wad.GetLump(lump)),
-                "LINEDEFS" => Lumpalyzer.AnalyzeLinedefs(_wad.GetLump(lump)),
-                "SECTORS" => Lumpalyzer.AnalyzeSectors(_wad.GetLump(lump)),
-                "THINGS" => Lumpalyzer.AnalyzeThings(_wad.GetLump(lump)),
-                _ => compLevel
-            };
+        // Look for a DEHACKED lump, and analyze that if it exists.
+        var dehackedLump = _wad.Lumps.FirstOrDefault(x => x.Name == "DEHACKED");
+        if(dehackedLump is not null) {
+            compLevel = compLevel.Promote(Lumpalyzer.AnalyzeDeHackEd(_wad.GetLump(dehackedLump)));
+        }
 
-            compLevel = compLevel.Promote(resultComplevel);
+        // Next, analyze the sectors, linedefs, and things for each detected map.
+        foreach(var mapName in MapList) {
+            var mapLumps = GetMapLumps(mapName.Name);
+
+            if(mapLumps is null) {
+                continue;
+            }
+
+            compLevel = compLevel.Promote(Lumpalyzer.AnalyzeLinedefs(_wad.GetLump(mapLumps.Value.Linedefs)));
+            compLevel = compLevel.Promote(Lumpalyzer.AnalyzeSectors(_wad.GetLump(mapLumps.Value.Sectors)));
+            compLevel = compLevel.Promote(Lumpalyzer.AnalyzeThings(_wad.GetLump(mapLumps.Value.Things)));
         }
 
         /*
@@ -125,12 +137,13 @@ public class Analyzer {
         }
 
         var mapLumps = GetMapLumps("E1M8");
-        var sectorLump = mapLumps.FirstOrDefault(x => x.Name == "SECTORS");
-        var thingLump = mapLumps.FirstOrDefault(x => x.Name == "THINGS");
 
-        if(sectorLump is null || thingLump is null) {
+        if(mapLumps is null) {
             return false;
         }
+
+        var sectorLump = mapLumps.Value.Sectors;
+        var thingLump = mapLumps.Value.Things;
 
         var sectorStream = _wad.GetLump(sectorLump);
         var thingStream = _wad.GetLump(thingLump);
@@ -142,33 +155,37 @@ public class Analyzer {
     /// Fetches a list of map lumps associated with a particular level slot.
     /// </summary>
     /// <param name="mapName">The name of the map to analyze.</param>
-    /// <returns>A list of lumps related to the given map, or an empty list if the map does not exist in the WAD.</returns>
-    private List<WadDirectoryEntry> GetMapLumps(string mapName) {
-        // NOTE: If we need to fetch more items, expand this list accordingly.
-        var candidates = new List<string> {
-            "LINEDEFS",
-            "SECTORS",
-            "THINGS"
-        };
+    /// <returns>A list of lumps related to the given map, or <c>null</c> if the map does not exist in the WAD.</returns>
+    private MapLumpCollection? GetMapLumps(string mapName) {
+        // Some early WAD editors mangle the names of the lumps, so we use indexes instead of lump names now.
+        const int linedefsOffset = 2;
+        const int sectorsOffset = 8;
+        const int thingsOffset = 1;
+
+        var result = new MapLumpCollection();
 
         var mapFound = false;
-        var mapLumps = new List<WadDirectoryEntry>();
-        foreach(var lump in _wad.Lumps) {
-            if(!mapFound) {
-                if(lump.Name != mapName) continue;
+        var mapIndex = -1;
 
-                mapFound = true;
+        // Fetch the base index of the map lump.
+        for(var i = 0; i < _wad.Lumps.Count; i++) {
+            if(_wad.Lumps[i].Name != mapName) {
                 continue;
             }
 
-            // Check for candidates and add them to the list.
-            if(candidates.Contains(lump.Name))
-                mapLumps.Add(lump);
-
-            // If we run into a marker lump, we've gone too far.
-            if(lump.Size == 0) break;
+            mapFound = true;
+            mapIndex = i;
         }
 
-        return mapLumps;
+        if(!mapFound) {
+            return null;
+        }
+
+        // Populate the collection and return the results.
+        result.Linedefs = _wad.Lumps[mapIndex + linedefsOffset];
+        result.Sectors = _wad.Lumps[mapIndex + sectorsOffset];
+        result.Things = _wad.Lumps[mapIndex + thingsOffset];
+
+        return result;
     }
 }
