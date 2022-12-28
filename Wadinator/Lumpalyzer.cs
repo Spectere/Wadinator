@@ -309,7 +309,7 @@ public static class Lumpalyzer {
         };
 
         var thingIdList = isHeretic ? hereticEnemyThingIds : doomEnemyThingIds;
-        return ReadThings(thingStream).Count(thing => thingIdList.Contains(thing.Type));
+        return ReadThings(thingStream).Count(thing => thingIdList.Contains(thing.Type) && (thing.Flags & 0x0010) == 0);
     }
 
     /// <summary>
