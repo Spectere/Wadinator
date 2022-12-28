@@ -60,7 +60,7 @@ public class WadReader : IDisposable {
             entriesList.Add(new WadDirectoryEntry(
                 _binaryReader.ReadInt32(),
                 _binaryReader.ReadInt32(),
-                Encoding.ASCII.GetString(_binaryReader.ReadBytes(8)).TrimEnd('\0')
+                Encoding.ASCII.GetString(_binaryReader.ReadBytes(8)).Split('\0')[0]
             ));
         }
 

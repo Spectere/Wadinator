@@ -169,10 +169,10 @@ public static class Lumpalyzer {
             // Check the upper bits. If they're indiscriminately set, odds are the map
             // was created with a wonky editor.
             if(!((linedef.Flags & 0x4000) > 0 || (linedef.Flags & 0x8000) > 0)) {
-                // Flag 0x0200 were introduced in Boom.
-                result = result.Promote(CompLevel.Boom, (linedef.Flags & 0x0100) > 0);
+                // Flag 0x0200 was introduced in Boom.
+                result = result.Promote(CompLevel.Boom, (linedef.Flags & 0x0200) > 0);
 
-                // Flag 0x1000 and 0x2000 were introduced in MBF21.
+                // Flags 0x1000 and 0x2000 were introduced in MBF21.
                 result = result.Promote(CompLevel.Mbf21, (linedef.Flags & 0x1000) > 0);
                 result = result.Promote(CompLevel.Mbf21, (linedef.Flags & 0x2000) > 0);
             }
@@ -183,9 +183,8 @@ public static class Lumpalyzer {
             // Types 271 and 272 were introduced in MBF.
             result = result.Promote(CompLevel.Mbf, linedef.Type is 271 or 272);
 
-            // Types >= 142 were introduced in Boom. Note: For some reason there's an errant type
-            // 65535 in doom.wad (Ultimate Doom v1.9), so we need to add an exception for that.
-            result = result.Promote(CompLevel.Boom, linedef.Type is >= 142 and < 65535);
+            // Boom introduces types 78, 85, and 142-269, as well as generalized types (8192-32767).
+            result = result.Promote(CompLevel.Boom, linedef.Type is 78 or 85 or (>= 142 and <= 269) or (>= 8192 and <= 32767));
         }
 
         return result;
@@ -251,10 +250,11 @@ public static class Lumpalyzer {
             // bits to 1.
             if((thing.Flags & 0x0100) == 0) {
                 // Boom introduced the 0x0020 (not in DM) and 0x0040 (not in coop) flags.
-                result = result.Promote(CompLevel.Boom, thing.Flags > 0x0020);
+                result = result.Promote(CompLevel.Boom, (thing.Flags & 0x0020) > 0);
+                result = result.Promote(CompLevel.Boom, (thing.Flags & 0x0040) > 0);
 
                 // MBF introduced the 0x0080 (friendly monster) flag.
-                result = result.Promote(CompLevel.Mbf, thing.Flags > 0x0080);
+                result = result.Promote(CompLevel.Mbf, (thing.Flags & 0x0080) > 0);
             }
         }
 
