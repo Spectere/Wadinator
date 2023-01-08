@@ -7,6 +7,12 @@ namespace Wadinator.Configuration;
 /// </summary>
 public class WadinatorConfig {
     /// <summary>
+    /// Specifies the Wadinator's data file. This defaults to "wadinator_data.json".
+    /// </summary>
+    [TomlProperty("data-file")]
+    public string DataFile { get; set; } = "wadinator_data.json";
+    
+    /// <summary>
     /// Specifies the user's default path.
     /// </summary>
     [TomlProperty("default-path")]

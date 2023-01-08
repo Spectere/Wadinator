@@ -5,7 +5,7 @@ using Wadinator.Exceptions;
 namespace Wadinator;
 
 /// <summary>
-/// 
+/// Doom WAD file reader.
 /// </summary>
 public class WadReader : IDisposable {
     /// <summary>

@@ -23,13 +23,12 @@ path.
 ## Randomization!
 
 If a path is given to the Wadinator, a running list of picked WADs will be
-created and saved into the `wadinator_played.txt` file. When all of the files
+created and saved into the `wadinator_data.json` file. When all of the files
 in the directory have been picked, the program will throw an error.
 
-To reset the random pool, simply delete the `wadinator_played.txt` file. This
-file is just a simple list of strings, so you also have the option of manually
-adding files to it (if you don't want them to be selected) or deleting
-individual records.
+To reset the random pool, you can modify the `wadinator_data.json` file and
+remove all of the WADs from the `SelectedWads` section (that is, replace it
+with an empty array).
 
 ## Analysis
 

@@ -1,3 +1,6 @@
+# Specifies the Wadinator's data file. This defaults to "wadinator_data.json".
+data-file = "wadinator_data.json"
+
 # The default path. If this is specified and no path is passed to Wadinator, this will be used. This defaults to "".
 # Please note that Windows paths must either be specified using forward-slashes (C:/Games/Doom) or escaped
 # backslashes (C:\\Games\\Doom), otherwise an error will occur.

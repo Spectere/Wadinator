@@ -1,11 +1,14 @@
 ﻿using System.Reflection;
+using System.Text;
+using System.Text.Json;
 using Tomlet;
 using Wadinator;
 using Wadinator.Configuration;
+using Wadinator.Data;
 
-const string playedFileName = "wadinator_played.txt";
+const string playedFilename = "wadinator_played.txt";
 
-static string? GetRandomFile(string path, bool recurse, bool useRngLog) {
+static string? GetRandomFile(string path, bool recurse, bool useRngLog, IEnumerable<string> playedFiles) {
     // Scan the directory for WAD files.
     var wadFileList = new List<string>(Directory.GetFiles(path, "*.wad", new EnumerationOptions {
         MatchCasing = MatchCasing.CaseInsensitive,
@@ -18,10 +21,8 @@ static string? GetRandomFile(string path, bool recurse, bool useRngLog) {
         return null;
     }
 
-    // Read the "played" file (if it exists).
-    if(useRngLog && File.Exists(playedFileName)) {
-        var playedFiles = new List<string>(File.ReadAllText(playedFileName).Split(Environment.NewLine).Where(e => !string.IsNullOrWhiteSpace(e)));
-
+    // Read the played WAD list (if that feature is enabled).
+    if(useRngLog) {
         // Remove the played WADs from the list.
         for(var index = wadFileList.Count - 1; index >= 0; index--) {
             if(playedFiles.Contains(wadFileList[index], StringComparer.InvariantCultureIgnoreCase)) {
@@ -92,11 +93,33 @@ static string? GetMatchingTextFile(string path, bool dZoneCompat) {
     return textFiles.FirstOrDefault();
 }
 
-// Basically just calls Console.WriteLine multiple times. :]
-// Please use it across the board for the sake of consistency.
+// Basically just calls Console.WriteLine multiple times. :] This just makes it a little easier
+// to format the output text. Please use it across the board for the sake of consistency.
 static void Print(params string[] lines) {
     foreach(var line in lines)
         Console.WriteLine(line);
+}
+
+// Writes out the Wadinator data file (complete with some sanity checks!).
+static void WriteDataFile(string dataFilename, WadinatorData data) {
+    var jsonSerializerOptions = new JsonSerializerOptions {
+        WriteIndented = true
+    };
+
+    var jsonString = JsonSerializer.Serialize(data, typeof(WadinatorData), jsonSerializerOptions);
+
+    if(string.IsNullOrWhiteSpace(jsonString)) {
+        Print("Error serializing Wadinator data file!");
+        return;
+    }
+    
+    // Make a copy of the last config file if it exists, just in case.
+    if(File.Exists(dataFilename)) {
+        File.Copy(dataFilename, $"{dataFilename}.last", true);
+    }
+    
+    // Save the file.
+    File.WriteAllText(dataFilename, jsonString);
 }
 
 // Check for a default configuration file, and create one if it doesn't exist.
@@ -123,6 +146,39 @@ if(!File.Exists(configPath)) {
 
 var configToml = TomlParser.ParseFile(configPath);
 var config = TomletMain.To<WadinatorConfig>(configToml);
+
+// If the data file cannot be found, migrate the wadinator_played.txt file (if it exists).
+if(!File.Exists(config.DataFile)) {
+    var migrationData = new WadinatorData();
+
+    if(File.Exists(playedFilename)) {
+        Console.WriteLine("Migrating legacy played data...\n");
+        migrationData.SelectedWads = File.ReadAllText(playedFilename)
+                                         .Split(Environment.NewLine)
+                                         .Where(e => !string.IsNullOrWhiteSpace(e))
+                                         .Select(x => new SelectedWad(x, false))
+                                         .ToList();
+    }
+
+    WriteDataFile(config.DataFile, migrationData);
+}
+
+// Load the Wadinator data file.
+var dataJson = File.ReadAllText(config.DataFile);
+WadinatorData? data;
+
+try {
+    data = JsonSerializer.Deserialize<WadinatorData>(dataJson);
+} catch(JsonException ex) {
+    Console.WriteLine("An error occurred while deserializing the Wadinator data file:\n");
+    Console.WriteLine(ex.Message);
+    return 1;
+}
+
+if(data is null) {
+    Console.WriteLine("Unable to deserialize the Wadinator data file. Aborting.");
+    return 1;
+}
 
 // Check arguments.
 var helpArg = args.Contains("-help") || args.Contains("-h");
@@ -241,7 +297,7 @@ var originalPath = path;
 if(Directory.Exists(path)) {
     pathIsDirectory = true;
 
-    if((path = GetRandomFile(originalPath, config.RecurseDirectories, config.LogRandomWadResults)) is null) {
+    if((path = GetRandomFile(originalPath, config.RecurseDirectories, config.LogRandomWadResults, data.SelectedWads.Select(x => x.Filename))) is null) {
         return 0;
     }
 } else if(!File.Exists(path)) {
@@ -282,15 +338,12 @@ do {
     
     // Add the WAD to the played file.
     if(logWad) {
-        var playedFileStream = File.AppendText(playedFileName);
-        playedFileStream.WriteLine(path);
-        playedFileStream.Flush();
-        playedFileStream.Close();
+        data.SelectedWads.Add(new SelectedWad(path, analysisResults.IsDeathmatchWad));
     }
 
     if(analysisResults.IsDeathmatchWad && pathIsDirectory) {
         // Pick a new WAD.
-        if((path = GetRandomFile(originalPath, config.RecurseDirectories, config.LogRandomWadResults)) is null) {
+        if((path = GetRandomFile(originalPath, config.RecurseDirectories, config.LogRandomWadResults, data.SelectedWads.Select(x => x.Filename))) is null) {
             return 0;
         }
     }
@@ -306,6 +359,12 @@ string? wadTxt = null;
 if(config.ReadmeTexts.SearchForText) {
     wadTxt = GetMatchingTextFile(path, config.ReadmeTexts.DZoneCompat);
 }
+
+
+/*********************************
+ * Save the Wadinator data file. *
+ *********************************/
+WriteDataFile(config.DataFile, data);
 
 
 /*******************
