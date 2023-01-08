@@ -250,11 +250,6 @@ if(Directory.Exists(path)) {
     return 1;
 }
 
-// Attempt to find the .txt file for the WAD if requested, with D!Zone compatibility if requested.
-string? wadTxt = null;
-if(config.ReadmeTexts.SearchForText) {
-    wadTxt = GetMatchingTextFile(path, config.ReadmeTexts.DZoneCompat);
-}
 
 /**************************
  * Perform file analysis. *
@@ -300,6 +295,22 @@ do {
         }
     }
 } while(analysisResults.IsDeathmatchWad && pathIsDirectory);
+
+
+/*****************************
+ * Perform text file search. *
+ *****************************/
+
+// Attempt to find the .txt file for the WAD if requested, with D!Zone compatibility if requested.
+string? wadTxt = null;
+if(config.ReadmeTexts.SearchForText) {
+    wadTxt = GetMatchingTextFile(path, config.ReadmeTexts.DZoneCompat);
+}
+
+
+/*******************
+ * Report results. *
+ *******************/
 
 // Attempt to detect the first map in the WAD and put together a warp string for it.
 var warpString = " -warp ";
