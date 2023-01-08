@@ -53,6 +53,33 @@ skip-deathmatch-threshold = 0
 record-skipped-maps = false
 
 
+# Music randomizer settings.
+[music-randomizer]
+
+# If this is set to <c>true</c>, a music WAD will be generated so that the player doesn't have to constantly endure
+# D_E1M1 and D_RUNNIN. This setting defaults to false.
+generate-music-wad = false
+
+# The filename of the music WAD. This setting defaults to "WadinatorMusic.wad".
+music-wad-filename = "WadinatorMusic.wad"
+
+# The directory containing the music lumps that should be used by the randomizer. This setting defaults to "MusicLumps".
+source-lump-path = "MusicLumps"
+
+# If this is set to <c>true</c>, a music lump should be generated even if the WAD already has custom music in that slot.
+# This setting defaults to false.
+replace-existing-music = false
+
+# If this is set to true, random music will be used for the intermission screen as well. Note that even if this is set
+# to true, the value of ReplaceExistingMusic will still be considered. This setting defaults to true.
+replace-intermission-music = true
+
+# If this is set to true, a music lump chosen for the intermission screen music will be tallied. This will impact the
+# likelihood that it will be picked again, as the music randomizer puts a higher weight on songs that have been picked
+# fewer times. This setting defaults to false.
+track-intermission-music-usage = false
+
+
 # Text editor settings.
 [editor]
 

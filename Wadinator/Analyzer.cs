@@ -61,6 +61,7 @@ public class Analyzer {
             ContainsMapXxMaps: UsesMapOnly,
             HasMismatchedBosses: hasMismatchedBosses,
             MapList: MapList,
+            MusicList: _wad.Lumps.Where(x => x.Name.StartsWith("D_")).ToList(),
             IsDeathmatchWad: isDeathmatchWad
         );
     }

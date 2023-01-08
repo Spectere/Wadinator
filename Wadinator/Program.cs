@@ -122,6 +122,9 @@ static void WriteDataFile(string dataFilename, WadinatorData data) {
     File.WriteAllText(dataFilename, jsonString);
 }
 
+// Needed by WadWriter.
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
 // Check for a default configuration file, and create one if it doesn't exist.
 var appDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
 var configPath = Path.Combine(appDirectory, "Wadinator.toml");
@@ -147,6 +150,10 @@ if(!File.Exists(configPath)) {
 var configToml = TomlParser.ParseFile(configPath);
 var config = TomletMain.To<WadinatorConfig>(configToml);
 
+if(!ConfigSanity.Check(config)) {
+    return 1;
+}
+
 // If the data file cannot be found, migrate the wadinator_played.txt file (if it exists).
 if(!File.Exists(config.DataFile)) {
     var migrationData = new WadinatorData();
@@ -156,7 +163,7 @@ if(!File.Exists(config.DataFile)) {
         migrationData.SelectedWads = File.ReadAllText(playedFilename)
                                          .Split(Environment.NewLine)
                                          .Where(e => !string.IsNullOrWhiteSpace(e))
-                                         .Select(x => new SelectedWad(x, false))
+                                         .Select(x => new SelectedWad { Filename = x, Skipped = false })
                                          .ToList();
     }
 
@@ -338,7 +345,7 @@ do {
     
     // Add the WAD to the played file.
     if(logWad) {
-        data.SelectedWads.Add(new SelectedWad(path, analysisResults.IsDeathmatchWad));
+        data.SelectedWads.Add(new SelectedWad { Filename = path, Skipped = analysisResults.IsDeathmatchWad });
     }
 
     if(analysisResults.IsDeathmatchWad && pathIsDirectory) {
@@ -358,6 +365,26 @@ do {
 string? wadTxt = null;
 if(config.ReadmeTexts.SearchForText) {
     wadTxt = GetMatchingTextFile(path, config.ReadmeTexts.DZoneCompat);
+}
+
+
+/*******************************
+ * Perform music WAD creation. *
+ *******************************/
+var printMusicWadFilename = false;
+if(config.MusicRandomizerConfig.GenerateMusicWad) {
+    var musicRandomizer = new MusicRandomizer(config.MusicRandomizerConfig);
+    data.MusicLumps = musicRandomizer.RefreshMusicList(data.MusicLumps);
+    var musicWadGenerationResults = musicRandomizer.GenerateWad(
+        musicLumps: data.MusicLumps,
+        mapList: analysisResults.MapList.Select(x => x.Name).ToList(),
+        existingMusic: analysisResults.MusicList.Select(x => x.Name).ToList()
+    );
+
+    printMusicWadFilename = musicWadGenerationResults.Success;
+    if(musicWadGenerationResults.Success) {
+        data.MusicLumps = musicWadGenerationResults.MusicLumps;
+    }
 }
 
 
@@ -381,6 +408,13 @@ if(analysisResults.MapList.Any()) {
     } else {
         warpString += $"{firstMap.Name[1]} {firstMap.Name[3]}";
     }
+}
+
+// Assemble the WAD list.
+var wadList = $"\"{path}\"";
+
+if(printMusicWadFilename) {
+    wadList += $" \"{config.MusicRandomizerConfig.MusicWadFilename}\"";
 }
 
 // Announce the results.
@@ -424,7 +458,7 @@ if(game == Game.Heretic) {
     // Doom or Doom II
     var compLevelText = config.Games.Doom.UsesComplevels ? $" -complevel {(int)analysisResults.CompLevel}" : "";
     Print(
-       $"    {exePrefix}{config.Games.Doom.ExecutableName} -iwad {(analysisResults.ContainsMapXxMaps ? "doom2.wad" : "doom.wad")} -file {path} -skill 4{compLevelText}{warpString}",
+       $"    {exePrefix}{config.Games.Doom.ExecutableName} -iwad {(analysisResults.ContainsMapXxMaps ? "doom2.wad" : "doom.wad")} -file {wadList} -skill 4{compLevelText}{warpString}",
         ""
     );
 

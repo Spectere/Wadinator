@@ -49,6 +49,12 @@ public class WadinatorConfig {
     public Analysis Analysis { get; set; } = new();
 
     /// <summary>
+    /// An object containing the music randomizer configuration.
+    /// </summary>
+    [TomlProperty("music-randomizer")]
+    public MusicRandomizerConfig MusicRandomizerConfig { get; set; } = new();
+
+    /// <summary>
     /// An object containing text editor configuration.
     /// </summary>
     [TomlProperty("editor")]

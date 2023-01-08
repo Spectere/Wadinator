@@ -8,4 +8,9 @@ public class WadinatorData {
     /// WADs that were selected by the Wadinator.
     /// </summary>
     public List<SelectedWad> SelectedWads { get; set; } = new();
+
+    /// <summary>
+    /// A list of music lumps for the randomizer.
+    /// </summary>
+    public List<MusicLump> MusicLumps { get; set; } = new();
 }
