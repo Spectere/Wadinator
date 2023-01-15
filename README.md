@@ -75,9 +75,9 @@ ensure that those WADs will be fully playable.
 
 ## Limitations
 
-The Wadinator's complevel detection behaved as expected on the author's system,
-using an admittedly narrow test suite (~20 WADs). More testing will be needed
-to fully determine its reliability.
+The Wadinator's complevel detection behaves as expected, both against a
+fairly healthy test suite as well after considerable real-world testing and
+refinement, though there is still likely some room for improvement.
 
 The Wadinator currently only returns complevels 2, 3, 9, 11, and 21. Most of
 the others are difficult to determine with any degree of certainty.
@@ -85,7 +85,11 @@ the others are difficult to determine with any degree of certainty.
 There are a number of quirks with older DOS level editors that may cause
 unexpected results. While some of these have been worked around, it's possible
 that more may crop up as the sample size increases. If you run into something
-like this, please open a GitHub issue and let us know!
+like this, please open a GitHub issue and let us know! However, please note
+that invalid data produced by these editors (particularly garbage data in unused
+bits, likely due to uninitialized memory) can be impossible to distinguish from
+legitmate Boom/MBF tags. This sort of error is far more common on very old WAD
+files.
 
 The Wadinator makes no attempt to detect Heretic (or other) WAD files. A
 command line parameter must be specified in order for it to handle these
