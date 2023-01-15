@@ -215,12 +215,14 @@ if((args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) || helpAr
         "                    [WADDIR]/TXT/*/[WADNAME].TXT or any such text file located",
         "                    in [WADDIR]/TXT/[WADNAME]/, as well as the directory of the",
         "                    WAD.",
+        "    -(no-)music     Enables or disables music WAD generation.",
         ""
     );
     return 0;
 }
 
 // Handle command line parameters as lazily as possible.
+// TODO: Improve command line parsing. I mean, seriously...just look at this crap. XD
 var game = config.UseHeretic ? Game.Heretic : Game.Doom;
 var path = config.DefaultPath;
 foreach(var arg in args) {
@@ -269,6 +271,16 @@ foreach(var arg in args) {
         case "-dz":
         case "-dzone":
             config.ReadmeTexts.DZoneCompat = true;
+            break;
+        
+        case "-m":
+        case "-music":
+            config.MusicRandomizerConfig.GenerateMusicWad = true;
+            break;
+            
+        case "-no-m":
+        case "-no-music":
+            config.MusicRandomizerConfig.GenerateMusicWad = false;
             break;
 
         default:
