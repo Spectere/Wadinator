@@ -498,7 +498,7 @@ if(game == Game.Heretic) {
         }
     }
 
-    if(config.Games.Doom.UsesComplevels) {
+    if(config.Games.Doom.UsesComplevels && config.DisplayComplevelReference) {
         if(analysisResults.CompLevel < CompLevel.Mbf21) {
             Print(
                 "",

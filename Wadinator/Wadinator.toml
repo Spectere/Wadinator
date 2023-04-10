@@ -18,6 +18,10 @@ log-rng-results = true
 # the -doom switch. This defaults to false.
 use-heretic = false
 
+# If this is set to true, a complevel reference will be displayed at the bottom of Wadinator's output, if the
+# game engine supports complevels. If this is set to false, the reference will not be printed, saving some space.
+display-complevel-reference = true
+
 
 # Readme / text file finder settings.
 [readme-texts]
@@ -56,7 +60,7 @@ record-skipped-maps = false
 # Music randomizer settings.
 [music-randomizer]
 
-# If this is set to <c>true</c>, a music WAD will be generated so that the player doesn't have to constantly endure
+# If this is set to true, a music WAD will be generated so that the player doesn't have to constantly endure
 # D_E1M1 and D_RUNNIN. This setting defaults to false.
 generate-music-wad = false
 
@@ -66,7 +70,7 @@ music-wad-filename = "WadinatorMusic.wad"
 # The directory containing the music lumps that should be used by the randomizer. This setting defaults to "MusicLumps".
 source-lump-path = "MusicLumps"
 
-# If this is set to <c>true</c>, a music lump should be generated even if the WAD already has custom music in that slot.
+# If this is set to true, a music lump should be generated even if the WAD already has custom music in that slot.
 # This setting defaults to false.
 replace-existing-music = false
 

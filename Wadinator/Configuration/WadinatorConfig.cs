@@ -37,6 +37,12 @@ public class WadinatorConfig {
     public bool UseHeretic { get; set; } = false;
 
     /// <summary>
+    /// Indicates whether or not the complevel reference should be shown to the user.
+    /// </summary>
+    [TomlProperty("display-complevel-reference")]
+    public bool DisplayComplevelReference { get; set; } = true;
+
+    /// <summary>
     /// An object containing the text file finder configuration.
     /// </summary>
     [TomlProperty("readme-texts")]
