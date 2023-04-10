@@ -8,7 +8,7 @@ using Wadinator.Data;
 
 const string playedFilename = "wadinator_played.txt";
 
-static string? GetRandomFile(string path, bool recurse, bool useRngLog, IEnumerable<string> playedFiles) {
+static string? GetRandomFile(string path, bool recurse, bool useRngLog, IList<string> playedFiles) {
     // Scan the directory for WAD files.
     var wadFileList = new List<string>(Directory.GetFiles(path, "*.wad", new EnumerationOptions {
         MatchCasing = MatchCasing.CaseInsensitive,
@@ -177,13 +177,15 @@ WadinatorData? data;
 try {
     data = JsonSerializer.Deserialize<WadinatorData>(dataJson);
 } catch(JsonException ex) {
-    Console.WriteLine("An error occurred while deserializing the Wadinator data file:\n");
-    Console.WriteLine(ex.Message);
+    Print(
+        "An error occurred while deserializing the Wadinator data file:",
+        ex.Message
+    );
     return 1;
 }
 
 if(data is null) {
-    Console.WriteLine("Unable to deserialize the Wadinator data file. Aborting.");
+    Print("Unable to deserialize the Wadinator data file. Aborting.");
     return 1;
 }
 
@@ -316,7 +318,7 @@ var originalPath = path;
 if(Directory.Exists(path)) {
     pathIsDirectory = true;
 
-    if((path = GetRandomFile(originalPath, config.RecurseDirectories, config.LogRandomWadResults, data.SelectedWads.Select(x => x.Filename))) is null) {
+    if((path = GetRandomFile(originalPath, config.RecurseDirectories, config.LogRandomWadResults, data.SelectedWads.Select(x => x.Filename).ToList())) is null) {
         return 0;
     }
 } else if(!File.Exists(path)) {
@@ -362,7 +364,7 @@ do {
 
     if(analysisResults.IsDeathmatchWad && pathIsDirectory) {
         // Pick a new WAD.
-        if((path = GetRandomFile(originalPath, config.RecurseDirectories, config.LogRandomWadResults, data.SelectedWads.Select(x => x.Filename))) is null) {
+        if((path = GetRandomFile(originalPath, config.RecurseDirectories, config.LogRandomWadResults, data.SelectedWads.Select(x => x.Filename).ToList())) is null) {
             return 0;
         }
     }

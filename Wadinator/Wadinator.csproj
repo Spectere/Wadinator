@@ -10,7 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Samboy063.Tomlet" Version="3.2.2" />
+      <PackageReference Include="Samboy063.Tomlet" Version="5.1.2" />
       <PackageReference Include="System.Text.Encoding.CodePages" Version="7.0.0" />
     </ItemGroup>
 
