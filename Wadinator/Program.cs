@@ -236,31 +236,32 @@ if((args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) || helpAr
         "  if you only want the program to estimate the appropriate complevel for a single",
         "  file.",
         "",
-        "    -doom           Specifies that the WADs in the directory were designed for",
-        "                    Doom/Doom II.",
-        "    -(no-)recurse   Scan directory recursively (only valid if a directory is",
-        "                    specified). Use 'no-recurse' to explicitly disable this",
-        "                    behavior.",
-        "    -(no)-log       Enables or disables reading/writing from/to the played file.",
-        "    -heretic        Specifies that the WADs in the directory were designed for",
-        "                    Heretic.",
-        "    -clear-music    Wipes the music database. This both removes the entries from",
-        "                    the data file *and* removes the lumps from disk.",
-        "    -import-music   Imports a directory of music lumps into the music database",
-        "                    and exits. When using this parameter, the \"path/file\"",
-        "                    argument represents the directory or file that should be",
-        "                    imported. Note that the recursion settings will apply to",
-        "                    the music import process.",
-        "    -(no-)find-txt  Enables or disables the finding of a WAD's specified text",
-        "                    file.",
-        "    -(no-)dzone     Enables or disables D!Zone compatibility when searching for",
-        "                    text files. This means it will search for either",
-        "                    [WADDIR]/TXT/*/[WADNAME].TXT or any such text file located",
-        "                    in [WADDIR]/TXT/[WADNAME]/, as well as the directory of the",
-        "                    WAD.",
-        "    -(no-)music     Enables or disables music WAD generation.",
-        "    -v              Enables verbose output. Currently this is only used for the",
-        "                    music import feature.",
+        "    -doom               Specifies that the WADs in the directory were designed for",
+        "                        Doom/Doom II.",
+        "    -(no-)recurse       Scan directory recursively (only valid if a directory is",
+        "                        specified). Use 'no-recurse' to explicitly disable this",
+        "                        behavior.",
+        "    -(no)-log           Enables or disables reading/writing from/to the played file.",
+        "    -heretic            Specifies that the WADs in the directory were designed for",
+        "                        Heretic.",
+        "    -clear-all-music    Wipes the music database. This both removes the entries from",
+        "                        the data file *and* removes the lumps from disk.",
+        "    -import-music       Imports a directory of music lumps into the music database",
+        "                        and exits. When using this parameter, the \"path/file\"",
+        "                        argument represents the directory or file that should be",
+        "                        imported. Note that the recursion settings will apply to",
+        "                        the music import process.",
+        "    -clear-all-played   Clears the WAD played history and exits.",
+        "    -(no-)find-txt      Enables or disables the finding of a WAD's specified text",
+        "                        file.",
+        "    -(no-)dzone         Enables or disables D!Zone compatibility when searching for",
+        "                        text files. This means it will search for either",
+        "                        [WADDIR]/TXT/*/[WADNAME].TXT or any such text file located",
+        "                        in [WADDIR]/TXT/[WADNAME]/, as well as the directory of the",
+        "                        WAD.",
+        "    -(no-)music         Enables or disables music WAD generation.",
+        "    -v                  Enables verbose output. Currently this is only used for the",
+        "                        music import feature.",
         ""
     );
     return 0;
@@ -270,6 +271,7 @@ if((args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) || helpAr
 // TODO: Improve command line parsing. I mean, seriously...just look at this crap. XD
 var game = config.UseHeretic ? Game.Heretic : Game.Doom;
 var path = config.DefaultPath;
+var clearPlayed = false;
 var clearMusic = false;
 var importMusic = false;
 var verbose = false;
@@ -331,12 +333,16 @@ foreach(var arg in args) {
             config.MusicRandomizerConfig.GenerateMusicWad = false;
             break;
         
-        case "-clear-music":
+        case "-clear-all-music":
             clearMusic = true;
             break;
         
         case "-import-music":
             importMusic = true;
+            break;
+        
+        case "-clear-all-played":
+            clearPlayed = true;
             break;
         
         case "-v":
@@ -367,6 +373,18 @@ foreach(var arg in args) {
 // If we're on Windows, transform the path to ensure that we're using backslashes.
 if(OperatingSystem.IsWindows()) {
     path = path.Replace("/", "\\");
+}
+
+// Clearing out the played history takes even more precident.
+if(clearPlayed) {
+    // Wipe the played history from the data file.
+    Print("Clearing out the played WAD history...");
+    data.SelectedWads.Clear();
+    
+    // Write the updated data file.
+    Print("Done!");
+    WriteDataFile(config.DataFile, data);
+    return 0;
 }
 
 // Clearing out the music takes precident.
