@@ -15,4 +15,11 @@ public class MusicWadGenerationResults {
     /// The music lumps data object, with the selection counts updated appropriately.
     /// </summary>
     public List<MusicLump> MusicLumps { get; set; } = new();
+
+    /// <summary>
+    /// A dictionary containing the map whose music was replaced, as well as information
+    /// about the lump that replaced it. This can be used to report the selected tracks
+    /// back to the user.
+    /// </summary>
+    public Dictionary<string, MusicLump> SelectedLumps { get; set; } = new();
 }

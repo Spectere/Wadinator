@@ -83,6 +83,9 @@ replace-intermission-music = true
 # fewer times. This setting defaults to false.
 track-intermission-music-usage = false
 
+# If this is set to true, the tracks that are selected will be displayed when the program is run.
+display-selected-tracks = true
+
 
 # Text editor settings.
 [editor]

@@ -102,6 +102,9 @@ static void Print(params string[] lines) {
 
 // Writes out the Wadinator data file (complete with some sanity checks!).
 static void WriteDataFile(string dataFilename, WadinatorData data) {
+    // Bump the data file version.
+    data.Version = WadinatorData.CurrentDataVersion;
+    
     var jsonSerializerOptions = new JsonSerializerOptions {
         WriteIndented = true
     };
@@ -189,6 +192,37 @@ if(data is null) {
     return 1;
 }
 
+if(data.Version is null && data.MusicLumps.Count > 0) {
+    Print(
+        "",
+        "NOTE: This version of the Wadinator changes the way music lumps are handled.",
+        "      Please remove all music from your music directory and reimport the lumps",
+        "      using the -import-music parameter.",
+        ""
+    );
+
+    data.MusicLumps = new List<MusicLump>();
+    WriteDataFile(config.DataFile, data);
+
+    return 0;
+}
+
+if(data.Version > WadinatorData.CurrentDataVersion) {
+    Print(
+        "",
+        $"ERROR: The Wadinator data file appears to be version {data.Version}, but this version",
+        $"       only supports up to version {WadinatorData.CurrentDataVersion}. In order to prevent your data from",
+        "       being corrupted, execution is being aborted. Please ensure that you're",
+        "       using the latest version of the Wadinator. The latest version can be",
+        "       found at the following address:",
+        "",
+        "           https://github.com/Spectere/Wadinator",
+        ""
+    );
+
+    return 2;
+}
+
 // Check arguments.
 var helpArg = args.Contains("-help") || args.Contains("-h");
 if((args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) || helpArg) {
@@ -210,6 +244,13 @@ if((args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) || helpAr
         "    -(no)-log       Enables or disables reading/writing from/to the played file.",
         "    -heretic        Specifies that the WADs in the directory were designed for",
         "                    Heretic.",
+        "    -clear-music    Wipes the music database. This both removes the entries from",
+        "                    the data file *and* removes the lumps from disk.",
+        "    -import-music   Imports a directory of music lumps into the music database",
+        "                    and exits. When using this parameter, the \"path/file\"",
+        "                    argument represents the directory or file that should be",
+        "                    imported. Note that the recursion settings will apply to",
+        "                    the music import process.",
         "    -(no-)find-txt  Enables or disables the finding of a WAD's specified text",
         "                    file.",
         "    -(no-)dzone     Enables or disables D!Zone compatibility when searching for",
@@ -218,6 +259,8 @@ if((args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) || helpAr
         "                    in [WADDIR]/TXT/[WADNAME]/, as well as the directory of the",
         "                    WAD.",
         "    -(no-)music     Enables or disables music WAD generation.",
+        "    -v              Enables verbose output. Currently this is only used for the",
+        "                    music import feature.",
         ""
     );
     return 0;
@@ -227,6 +270,9 @@ if((args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) || helpAr
 // TODO: Improve command line parsing. I mean, seriously...just look at this crap. XD
 var game = config.UseHeretic ? Game.Heretic : Game.Doom;
 var path = config.DefaultPath;
+var clearMusic = false;
+var importMusic = false;
+var verbose = false;
 foreach(var arg in args) {
     switch(arg) {
         case "-doom":
@@ -284,6 +330,18 @@ foreach(var arg in args) {
         case "-no-music":
             config.MusicRandomizerConfig.GenerateMusicWad = false;
             break;
+        
+        case "-clear-music":
+            clearMusic = true;
+            break;
+        
+        case "-import-music":
+            importMusic = true;
+            break;
+        
+        case "-v":
+            verbose = true;
+            break;
 
         default:
             if(arg.StartsWith("-")) {
@@ -309,6 +367,52 @@ foreach(var arg in args) {
 // If we're on Windows, transform the path to ensure that we're using backslashes.
 if(OperatingSystem.IsWindows()) {
     path = path.Replace("/", "\\");
+}
+
+// Clearing out the music takes precident.
+if(clearMusic) {
+    // Wipe the music from the data file.
+    Print("Clearing out the music database...");
+    data.MusicLumps.Clear();
+    
+    // Clear out the lump store.
+    Print("Removing music lumps from disk...");
+    Directory.Delete(config.MusicRandomizerConfig.SourceLumpPath, true);
+    Directory.CreateDirectory(config.MusicRandomizerConfig.SourceLumpPath);
+    
+    // Write out the data file.
+    Print("", "Done!");
+    WriteDataFile(config.DataFile, data);
+    return 0;
+}
+
+// If we are importing music, break off here and import the stuff.
+if(importMusic) {
+    var newMusicLumps = MusicRandomizer.ImportMusic(config, path, verbose);
+
+    if(newMusicLumps is null) {
+        return 1;
+    }
+    
+    // Merge the entries with the existing lumps.
+    foreach(var newMusicLump in newMusicLumps) {
+        var existingLump = data.MusicLumps.FirstOrDefault(x => x.Sha1 == newMusicLump.Sha1);
+
+        if(existingLump is null) {
+            // New lump. Just add it to the collection.
+            data.MusicLumps.Add(newMusicLump);
+            continue;
+        }
+        
+        // Existing lump. Merge the data.
+        existingLump.Title = newMusicLump.Title;
+        existingLump.Artist = newMusicLump.Artist;
+        existingLump.Sequencer = newMusicLump.Sequencer;
+        existingLump.Exists = newMusicLump.Exists;
+    }
+
+    WriteDataFile(config.DataFile, data);
+    return 0;
 }
 
 // Determine if the passed path is a file or directory (or if it doesn't exist at all).
@@ -386,10 +490,10 @@ if(config.ReadmeTexts.SearchForText) {
  * Perform music WAD creation. *
  *******************************/
 var printMusicWadFilename = false;
+MusicWadGenerationResults? musicWadGenerationResults = null;
 if(config.MusicRandomizerConfig.GenerateMusicWad) {
     var musicRandomizer = new MusicRandomizer(config.MusicRandomizerConfig);
-    data.MusicLumps = musicRandomizer.RefreshMusicList(data.MusicLumps);
-    var musicWadGenerationResults = musicRandomizer.GenerateWad(
+    musicWadGenerationResults = musicRandomizer.GenerateWad(
         musicLumps: data.MusicLumps,
         mapList: analysisResults.MapList.Select(x => x.Name).ToList(),
         existingMusic: analysisResults.MusicList.Select(x => x.Name).ToList()
@@ -578,6 +682,34 @@ if(!pathIsDirectory && analysisResults.IsDeathmatchWad) {
         "",
         $"  NOTE: This WAD contains fewer enemies than the configured threshold ({config.Analysis.SkipDeathmatchThreshold})."
     );
+}
+
+// Show the music that was replaced.
+if(config.MusicRandomizerConfig.DisplaySelectedTracks && musicWadGenerationResults?.SelectedLumps.Count > 0) {
+    Print(
+        "",
+        "",
+        "  The following music will be used in this playthrough:",
+        ""
+    );
+
+    foreach(var replacement in musicWadGenerationResults.SelectedLumps) {
+        var attribution = (string.IsNullOrWhiteSpace(replacement.Value.Title) ? "Unknown Song" : replacement.Value.Title);
+
+        if(string.IsNullOrWhiteSpace(replacement.Value.Artist) && string.IsNullOrWhiteSpace(replacement.Value.Sequencer)) {
+            attribution += ", by an unknown author";
+        }
+        
+        if(!string.IsNullOrWhiteSpace(replacement.Value.Artist)) {
+            attribution += $", by {replacement.Value.Artist}";
+        }
+
+        if(!string.IsNullOrWhiteSpace(replacement.Value.Sequencer)) {
+            attribution += $", sequenced by {replacement.Value.Sequencer}";
+        }
+
+        Print($"    {replacement.Key}: {attribution}");
+    }
 }
 
 Print("");

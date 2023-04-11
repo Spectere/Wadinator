@@ -48,4 +48,10 @@ public class MusicRandomizerConfig {
     /// </summary>
     [TomlProperty("track-intermission-music-usage")]
     public bool TrackIntermissionMusicUsage { get; set; } = false;
+
+    /// <summary>
+    /// If this is set to <c>true</c>, the chosen music will be displayed when the Wadinator is run.
+    /// </summary>
+    [TomlProperty("display-selected-tracks")]
+    public bool DisplaySelectedTracks { get; set; } = true;
 }

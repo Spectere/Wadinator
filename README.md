@@ -73,6 +73,48 @@ classic WADs (such as UAC_DEAD.WAD) rely on the legacy boss death behavior
 in complevel 0-2 in order to function correctly. This detection attempts to
 ensure that those WADs will be fully playable.
 
+## Music WAD Generation
+
+The Wadinator has the ability to pick music from a random pool. This is useful
+if you just can't bear to hear D_E1M1 and/or D_RUNNIN while sifting through
+random WADs.
+
+To use this feature, music lumps must be imported into the Wadinator. To do so,
+the `-import-music` parameter must be used, with the path or file name 
+corresponding to the music directory or file that should be imported. This
+command honors the `RecurseDirectories` configuration option, and can also 
+be controlled by the `-recurse` and `-no-recurse` command line parameters.
+
+If you wish to delete the music database, use the `-clear-music` parameter.
+
+### Music Metadata
+
+The Wadinator can also display which song was picked for each map slot. In
+order for this to be accurate, track information must be populated. To do 
+this, create a `manifest.json` file in the directory that contains your 
+music. Here is an example of a `manifest.json` file:
+
+```json
+{
+  "Entries": {
+    "MyMusic.mid": {
+      "Title": "My Cool Song",
+      "Artist": "CoolDude1986"
+    },
+    "SMB.mid": {
+      "Title": "Shuper Marius Bros Theme",
+      "Artist": "ShuperSoft",
+      "Sequencer": "SeqKing"
+    }
+  }
+}
+```
+
+The `Title` and `Artist` fields are fairly self-explanatory. The `Sequencer` 
+should be used in cases where a music file was converted from another source,
+such as when someone makes a MIDI conversion of a song from another video 
+game. Any of these fields can be omitted.
+
 ## Limitations
 
 The Wadinator's complevel detection behaves as expected, both against a
