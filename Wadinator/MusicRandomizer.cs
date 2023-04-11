@@ -446,11 +446,23 @@ public class MusicRandomizer {
         };
 
         // Look up the music info from the manifest file, if it exists.
-        if(manifest?.Entries is not null && manifest.Entries.TryGetValue(Path.GetFileName(path), out var manifestEntry)) {
-            musicLump.Title = manifestEntry.Title ?? musicLump.Title;
-            musicLump.Artist = manifestEntry.Artist ?? musicLump.Artist;
-            musicLump.Sequencer = manifestEntry.Sequencer ?? musicLump.Sequencer;
+        if(manifest?.Entries is not null) {
+            manifest.Entries.TryGetValue(Path.GetFileName(path), out var manifestEntry);
+
+            if(manifestEntry is null) {
+                // Try it without the file extension.
+                manifest.Entries.TryGetValue(Path.GetFileNameWithoutExtension(path), out manifestEntry);
+            }
+
+            if(manifestEntry is not null) {
+                musicLump.Title = manifestEntry.Title ?? musicLump.Title;
+                musicLump.Artist = manifestEntry.Artist ?? musicLump.Artist;
+                musicLump.Sequencer = manifestEntry.Sequencer ?? musicLump.Sequencer;
+            }
         }
+        
+        // If no title could be found, use the filename.
+        musicLump.Title ??= Path.GetFileName(path);
         
         // Create a storage directory and copy the lump into it.
         var hashIndex = fileHash[..2];
