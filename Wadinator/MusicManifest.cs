@@ -6,7 +6,7 @@ namespace Wadinator;
 public class MusicManifest {
     /// <summary>
     /// A collection of user-provided metadata for a directory of music. The key of each
-    /// entry is the filename, with the value being a <see cref="MusicManifestEntry"/>.
+    /// entry is the filename, with the value being a <see cref="MusicMetadata"/>.
     /// </summary>
-    public Dictionary<string, MusicManifestEntry>? Entries { get; set; }
+    public Dictionary<string, MusicMetadata>? Entries { get; set; }
 }

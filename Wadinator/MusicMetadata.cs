@@ -3,7 +3,7 @@ namespace Wadinator;
 /// <summary>
 /// User-defined metadata about a music file.
 /// </summary>
-public class MusicManifestEntry {
+public class MusicMetadata {
     /// <summary>
     /// The title of the song.
     /// </summary>
