@@ -116,14 +116,25 @@ public class Analyzer {
     /// <returns><c>true</c> if the WAD is determined to be a deathmatch WAD, otherwise <c>false</c>.</returns>
     private bool DetectDeathmatchWad() {
         var thingLumps = _wad.Lumps.Where(x => x.Name == "THINGS");
+        
         var totalEnemyCount = 0;
 
         foreach(var thingLump in thingLumps) {
-            var thingStream = _wad.GetLump(thingLump);
-            totalEnemyCount += Lumpalyzer.GetEnemyCount(thingStream, _analysisSettings.IsHeretic);
+            // Check for a player start.
+            if(!Lumpalyzer.HasPlayer1Start(_wad.GetLump(thingLump))) {
+                // This WAD will not be fully playable in single-player. Abort here.
+                return true;
+            }
+
+            // Check enemy count.
+            totalEnemyCount += Lumpalyzer.GetEnemyCount(_wad.GetLump(thingLump), _analysisSettings.IsHeretic);
         }
 
-        return _analysisSettings.DeathmatchMapEnemyThreshold >= totalEnemyCount;
+        if(_analysisSettings.DeathmatchMapEnemyThreshold >= totalEnemyCount) {
+            return true;
+        };
+
+        return false;
     }
 
     /// <summary>

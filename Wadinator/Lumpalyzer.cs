@@ -6,6 +6,8 @@ namespace Wadinator;
 /// Focuses on reading and analyzes WAD lumps.
 /// </summary>
 public static class Lumpalyzer {
+    private const ushort Player1StartId = 1;
+    
     // ReSharper disable NotAccessedPositionalProperty.Local
     /// <summary>
     /// Represents a Doom or Heretic linedef.
@@ -333,6 +335,14 @@ public static class Lumpalyzer {
 
         return bossFound && tag666Found;
     }
+
+    /// <summary>
+    /// Determines whether or not a things stream contains a player 1 start.
+    /// </summary>
+    /// <param name="thingStream">A <see cref="Stream"/> containing the map's THINGS lump.</param>
+    /// <returns><c>true</c> if the THINGS stream contains a player 1 start, otherwise <c>false</c>.</returns>
+    public static bool HasPlayer1Start(Stream thingStream) =>
+        ReadThings(thingStream).Any(x => x.Type == Player1StartId);
 
     /// <summary>
     /// Reads a LINEDEFS lump into a list of <see cref="Linedef"/> records.
