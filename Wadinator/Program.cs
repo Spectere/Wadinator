@@ -697,7 +697,7 @@ if(!pathIsDirectory && analysisResults.IsDeathmatchWad) {
     Print(
         "",
         "",
-        $"  NOTE: This WAD contains fewer enemies than the configured threshold ({config.Analysis.SkipDeathmatchThreshold})."
+        "  NOTE: The analyzer has determined that this is a deathmatch WAD."
     );
 }
 
