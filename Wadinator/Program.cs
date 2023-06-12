@@ -540,7 +540,7 @@ if(analysisResults.MapList.Any()) {
     var firstMap = analysisResults.MapList.MinBy(x => x.Name)!;
 
     if(firstMap.Name.StartsWith("MAP")) {
-        warpString += firstMap.Name[3..].TrimStart('0');
+        warpString += firstMap.Name.Substring(3, 2).TrimStart('0');
     } else {
         warpString += $"{firstMap.Name[1]} {firstMap.Name[3]}";
     }
@@ -576,8 +576,7 @@ Print(
     "",
     "  This WAD contains the following maps:",
     "",
-   $"    {string.Join(", ", analysisResults.MapList.OrderBy(lump => lump.Name).Select(lump => lump.Name))}",
-    "",
+    analysisResults.GetFormattedMapList(4),
     "",
     "  Here, have a convenient command line:",
     ""

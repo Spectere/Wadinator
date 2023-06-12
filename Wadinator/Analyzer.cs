@@ -11,9 +11,9 @@ public class Analyzer {
     private AnalysisSettings _analysisSettings;
 
     // Map List Regex
-    private static readonly Regex AllMapsRegEx = new("^(E.M.|MAP..)$");
-    private static readonly Regex EpisodeAndMapRegEx = new("^(E.M.)$");
-    private static readonly Regex UltimateDoomMapRegEx = new Regex("^(E4M.)$");
+    private static readonly Regex AllMapsRegEx = new("^(E.M.|MAP..)");
+    private static readonly Regex EpisodeAndMapRegEx = new("^(E.M.)");
+    private static readonly Regex UltimateDoomMapRegEx = new Regex("^(E4M.)");
 
     // Map Lump Information
     private List<WadDirectoryEntry> MapList =>
@@ -170,7 +170,7 @@ public class Analyzer {
 
         // Fetch the base index of the map lump.
         for(var i = 0; i < _wad.Lumps.Count; i++) {
-            if(_wad.Lumps[i].Name != mapName) {
+            if(!_wad.Lumps[i].Name.StartsWith(mapName)) {
                 continue;
             }
 
