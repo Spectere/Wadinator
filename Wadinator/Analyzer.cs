@@ -47,12 +47,15 @@ public class Analyzer {
     public AnalysisResults AnalyzeWad() {
         // Detect complevel and mismatched bosses.
         var (compLevel, hasMismatchedBosses) = DetectCompLevelAndMismatchedBosses();
-        
+
         // Detect deathmatch WADs.
         var isDeathmatchWad = false;
         if(_analysisSettings.DetectDeathmatchWads) {
             isDeathmatchWad = DetectDeathmatchWad();
         }
+        
+        // Detect maps with no exit.
+        var mapsWithNoExit = DetectMapsWithNoExit();
         
         // Return everything.
         return new AnalysisResults(
@@ -61,6 +64,7 @@ public class Analyzer {
             ContainsMapXxMaps: UsesMapOnly,
             HasMismatchedBosses: hasMismatchedBosses,
             MapList: MapList,
+            MapsWithNoExit: mapsWithNoExit,
             MusicList: _wad.Lumps.Where(x => x.Name.StartsWith("D_")).ToList(),
             IsDeathmatchWad: isDeathmatchWad
         );
@@ -135,6 +139,94 @@ public class Analyzer {
         };
 
         return false;
+    }
+
+    /// <summary>
+    /// Detects maps that do not have an exit.
+    /// </summary>
+    /// <returns>A list of maps that lack an exit.</returns>
+    private List<WadDirectoryEntry> DetectMapsWithNoExit() {
+        var mapsWithNoExit = new List<WadDirectoryEntry>();
+
+        foreach(var map in MapList) {
+            var hasExit = false;
+            var mapLumpsNullable = GetMapLumps(map.Name);
+
+            if(!mapLumpsNullable.HasValue) {
+                // This shouldn't happen, but handle it just in case.
+                Console.WriteLine($"DetectMapsWithNoEdit: unable to find map lumps for {map.Name}");
+                continue;
+            }
+            var mapLumps = mapLumpsNullable.Value;
+            
+            //
+            // LINEDEFS
+            //
+            var linedefIds = new List<ushort> {
+                11,   // S1 Exit
+                51,   // S1 Secret Exit
+                52,   // W1 Exit
+                124,  // W1 Secret Exit
+                197,  // G1 Exit (Boom)
+                198   // G1 Secret Exit (Boom)
+            };
+            var linedefStream = _wad.GetLump(mapLumps.Linedefs);
+
+            if(Lumpalyzer.LinedefTypeExists(linedefStream, linedefIds)) {
+                hasExit = true;
+            }
+            
+            //
+            // SECTORS
+            //
+            var sectorStream = _wad.GetLump(mapLumps.Sectors);
+            
+            // Type 11: 20% damage, exit
+            if(Lumpalyzer.SectorTypeExists(sectorStream, 11)) {
+                hasExit = true;
+            }
+            
+            // Generalized types: 12+6 (kill all players, exit), 12+6+5 (kill all players, secret exit)
+            var sectorIds = new List<ushort> {
+                0b0001_0000_0100_0000,  //     12 + 6: kill all players, exit
+                0b0001_0000_0110_0000,  // 12 + 6 + 5: kill all players, secret exit
+            };
+            sectorStream = _wad.GetLump(mapLumps.Sectors);
+            if(Lumpalyzer.SectorTypeExists(sectorStream, sectorIds, true)) {
+                hasExit = true;
+            }
+
+            //
+            // THINGS
+            //
+            var thingIds = new List<ushort>();
+            var thingsStream = _wad.GetLump(mapLumps.Things);
+
+            // SPECIAL CASE: Romero's Head (Thing ID: 88)
+            thingIds.Add(88);
+            
+            // SPECIAL CASE: Cyberdemon on E2M8 (Thing ID: 16)
+            if(map.Name.ToUpper().StartsWith("E2M8")) {
+                thingIds.Add(16);
+            }
+
+            // SPECIAL CASE: Spider Mastermind on E3M8 (Thing ID: 7)
+            if(map.Name.ToUpper().StartsWith("E3M8")) {
+                thingIds.Add(7);
+            }
+
+            if(Lumpalyzer.ThingTypeExists(thingsStream, thingIds)) {
+                hasExit = true;
+            }
+            
+            // Done. Did we find an exit?
+            if(!hasExit) {
+                // Nope. Add it to the list.
+                mapsWithNoExit.Add(map);
+            }
+        }
+
+        return mapsWithNoExit;
     }
 
     /// <summary>

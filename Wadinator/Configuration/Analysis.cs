@@ -30,4 +30,11 @@ public class Analysis {
     /// </summary>
     [TomlProperty("record-skipped-maps")]
     public bool RecordSkippedMaps { get; set; } = false;
+
+    /// <summary>
+    /// If this is set to <c>true</c>, a message will be displayed when a map or maps
+    /// lack a way for the player to exit the level.
+    /// </summary>
+    [TomlProperty("report-maps-with-no-exit")]
+    public bool ReportMapsWithNoExit { get; set; } = true;
 }
