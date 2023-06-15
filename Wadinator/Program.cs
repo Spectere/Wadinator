@@ -576,7 +576,8 @@ Print(
     "",
     "  This WAD contains the following maps:",
     "",
-    analysisResults.GetFormattedMapList(4),
+    analysisResults.GetFormattedMapList(analysisResults.MapList, 4),
+    "",
     "",
     "  Here, have a convenient command line:",
     ""
@@ -692,12 +693,23 @@ if(config.ReadmeTexts.SearchForText) {
     }
 }
 
+// If the map does not have an exit, print a message.
+if(analysisResults.MapsWithNoExit.Any()) {
+    Print(
+        "",
+        "",
+        "  NOTE: The following maps do not appear to have an exit:",
+        "",
+        analysisResults.GetFormattedMapList(analysisResults.MapsWithNoExit, 4)
+    );
+}
+
 // If the path is not a directory and is detected a deathmatch WAD, print a message.
 if(!pathIsDirectory && analysisResults.IsDeathmatchWad) {
     Print(
         "",
         "",
-        $"  NOTE: This WAD contains fewer enemies than the configured threshold ({config.Analysis.SkipDeathmatchThreshold})."
+        "  NOTE: The analyzer has determined that this is a deathmatch WAD."
     );
 }
 

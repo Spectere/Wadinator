@@ -6,6 +6,8 @@ namespace Wadinator;
 /// Focuses on reading and analyzes WAD lumps.
 /// </summary>
 public static class Lumpalyzer {
+    private const ushort Player1StartId = 1;
+    
     // ReSharper disable NotAccessedPositionalProperty.Local
     /// <summary>
     /// Represents a Doom or Heretic linedef.
@@ -335,6 +337,32 @@ public static class Lumpalyzer {
     }
 
     /// <summary>
+    /// Determines whether or not a things stream contains a player 1 start.
+    /// </summary>
+    /// <param name="thingStream">A <see cref="Stream"/> containing the map's THINGS lump.</param>
+    /// <returns><c>true</c> if the THINGS stream contains a player 1 start, otherwise <c>false</c>.</returns>
+    public static bool HasPlayer1Start(Stream thingStream) =>
+        ReadThings(thingStream).Any(x => x.Type == Player1StartId);
+
+    /// <summary>
+    /// Searches a LINEDEFS lump for a linedef with the given type ID.
+    /// </summary>
+    /// <param name="linedefStream">A <see cref="Stream"/> pointing to the level's LINEDEFS lump.</param>
+    /// <param name="linedefType">A linedef type to search for.</param>
+    /// <returns><c>true</c> if at least one linedef of the given type has been found, otherwise <c>false</c>.</returns>
+    public static bool LinedefTypeExists(Stream linedefStream, ushort linedefType) =>
+        LinedefTypeExists(linedefStream, new List<ushort> { linedefType });
+
+    /// <summary>
+    /// Searches a LINEDEFS lump for a linedef with the given type ID.
+    /// </summary>
+    /// <param name="linedefStream">A <see cref="Stream"/> pointing to the level's LINEDEFS lump.</param>
+    /// <param name="linedefTypes">A list of linedef types to search for.</param>
+    /// <returns><c>true</c> if at least one of the given linedefs has been found, otherwise <c>false</c>.</returns>
+    public static bool LinedefTypeExists(Stream linedefStream, List<ushort> linedefTypes) =>
+        ReadLinedefs(linedefStream).Any(x => linedefTypes.Contains(x.Type));
+
+    /// <summary>
     /// Reads a LINEDEFS lump into a list of <see cref="Linedef"/> records.
     /// </summary>
     /// <param name="linedefStream">A <see cref="Stream"/> pointing to the level's LINEDEFS lump.</param>
@@ -403,4 +431,62 @@ public static class Lumpalyzer {
 
         return things;
     }
+
+    /// <summary>
+    /// Returns whether or not a sector type could be found.
+    /// </summary>
+    /// <param name="sectorStream">A <see cref="Stream"/> pointing to the level's SECTORS lump.</param>
+    /// <param name="sectorType">A sector type to search for.</param>
+    /// <param name="bitwiseComparison">If <c>true</c>, the <paramref name="sectorType"/> field will be treated
+    /// as a bitfield. This is useful for generalized parameters.</param>
+    /// <returns><c>true</c> if at least one of the given sector type exists, otherwise <c>false</c>.</returns>
+    public static bool SectorTypeExists(Stream sectorStream, ushort sectorType, bool bitwiseComparison = false) => 
+        SectorTypeExists(sectorStream, new List<ushort> { sectorType }, bitwiseComparison);
+
+    /// <summary>
+    /// Returns whether or not a sector type could be found.
+    /// </summary>
+    /// <param name="sectorStream">A <see cref="Stream"/> pointing to the level's SECTORS lump.</param>
+    /// <param name="sectorTypes">A list of sector types to search for.</param>
+    /// <param name="bitwiseComparison">If <c>true</c>, the <paramref name="sectorTypes"/> field will be treated
+    /// as a bitfield. This is useful for generalized parameters.</param>
+    /// <returns><c>true</c> if at least one of the given sector types exist, otherwise <c>false</c>.</returns>
+    public static bool SectorTypeExists(Stream sectorStream, List<ushort> sectorTypes, bool bitwiseComparison) {
+        var sectors = ReadSectors(sectorStream);
+
+        if(!bitwiseComparison) {
+            return sectors.Any(x => sectorTypes.Contains(x.Type));  // Easy!
+        }
+
+
+        var result = false;
+        foreach(var sectorType in sectorTypes) {
+            if(result) {
+                // Short-circuit evaluation.
+                return result;
+            }
+
+            result = result || sectors.Any(x => (x.Type & sectorType) == sectorType);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Checks a thing type and returns whether or not they could be found.
+    /// </summary>
+    /// <param name="thingStream">A <see cref="Stream"/> pointing to the level's THINGS lump.</param>
+    /// <param name="thingType">The thing ID to check for.</param>
+    /// <returns><c>true</c> if at least one of the given thing type exists, otherwise <c>false</c></returns>
+    public static bool ThingTypeExists(Stream thingStream, ushort thingType) =>
+        ThingTypeExists(thingStream, new List<ushort> { thingType });
+    
+    /// <summary>
+    /// Checks a list of thing types and returns whether or not they could be found.
+    /// </summary>
+    /// <param name="thingStream">A <see cref="Stream"/> pointing to the level's THINGS lump.</param>
+    /// <param name="thingTypes">A list of thing IDs to check for.</param>
+    /// <returns><c>true</c> if at least one of the given things exist, otherwise <c>false</c>.</returns>
+    public static bool ThingTypeExists(Stream thingStream, List<ushort> thingTypes) =>
+        ReadThings(thingStream).Any(x => thingTypes.Contains(x.Type));
 }

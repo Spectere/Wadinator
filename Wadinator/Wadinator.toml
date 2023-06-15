@@ -56,6 +56,10 @@ skip-deathmatch-threshold = 0
 # If this is set to true, maps that are skipped will be logged into the wadinator_played.txt file.
 record-skipped-maps = false
 
+# If this is set to <c>true</c>, a message will be displayed when a map or maps lack a way for the player to exit
+# the level.
+report-maps-with-no-exit = true
+
 
 # Music randomizer settings.
 [music-randomizer]

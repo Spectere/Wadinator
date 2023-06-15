@@ -11,9 +11,10 @@ public class Analyzer {
     private AnalysisSettings _analysisSettings;
 
     // Map List Regex
-    private static readonly Regex AllMapsRegEx = new("^(E.M.|MAP..)");
-    private static readonly Regex EpisodeAndMapRegEx = new("^(E.M.)");
-    private static readonly Regex UltimateDoomMapRegEx = new Regex("^(E4M.)");
+    private static readonly Regex AllMapsRegEx = new(@"^(E\dM\d|MAP\d\d).*");
+    private static readonly Regex EpisodeAndMapRegEx = new(@"^(E\dM\d).*");
+    private static readonly Regex UltimateDoomMapRegEx = new Regex(@"^(E4M\d).*");
+    private static readonly Regex MapRegex = new(@"^MAP\d\d.*");
 
     // Map Lump Information
     private List<WadDirectoryEntry> MapList =>
@@ -21,7 +22,7 @@ public class Analyzer {
 
     private bool HasUltimateDoomMaps => MapList.Any(map => UltimateDoomMapRegEx.IsMatch(map.Name));
     private bool UsesEpisodeAndMap => MapList.Any(x => EpisodeAndMapRegEx.IsMatch(x.Name));
-    private bool UsesMapOnly => MapList.Any(x => x.Name.StartsWith("MAP"));
+    private bool UsesMapOnly => MapList.Any(x => MapRegex.IsMatch(x.Name));
     
     // Map Lump Directory Entries
     private struct MapLumpCollection {
@@ -31,7 +32,7 @@ public class Analyzer {
     }
 
     /// <summary>
-    /// Initializes the wad analyzer.
+    /// Initializes the WAD analyzer.
     /// </summary>
     /// <param name="wadReader">A <see cref="WadReader"/> containing a loaded WAD.</param>
     /// <param name="analysisSettings">Settings for the WAD analyzer.</param>
@@ -47,12 +48,15 @@ public class Analyzer {
     public AnalysisResults AnalyzeWad() {
         // Detect complevel and mismatched bosses.
         var (compLevel, hasMismatchedBosses) = DetectCompLevelAndMismatchedBosses();
-        
+
         // Detect deathmatch WADs.
         var isDeathmatchWad = false;
         if(_analysisSettings.DetectDeathmatchWads) {
             isDeathmatchWad = DetectDeathmatchWad();
         }
+        
+        // Detect maps with no exit.
+        var mapsWithNoExit = DetectMapsWithNoExit();
         
         // Return everything.
         return new AnalysisResults(
@@ -61,6 +65,7 @@ public class Analyzer {
             ContainsMapXxMaps: UsesMapOnly,
             HasMismatchedBosses: hasMismatchedBosses,
             MapList: MapList,
+            MapsWithNoExit: mapsWithNoExit,
             MusicList: _wad.Lumps.Where(x => x.Name.StartsWith("D_")).ToList(),
             IsDeathmatchWad: isDeathmatchWad
         );
@@ -116,14 +121,113 @@ public class Analyzer {
     /// <returns><c>true</c> if the WAD is determined to be a deathmatch WAD, otherwise <c>false</c>.</returns>
     private bool DetectDeathmatchWad() {
         var thingLumps = _wad.Lumps.Where(x => x.Name == "THINGS");
+        
         var totalEnemyCount = 0;
 
         foreach(var thingLump in thingLumps) {
-            var thingStream = _wad.GetLump(thingLump);
-            totalEnemyCount += Lumpalyzer.GetEnemyCount(thingStream, _analysisSettings.IsHeretic);
+            // Check for a player start.
+            if(!Lumpalyzer.HasPlayer1Start(_wad.GetLump(thingLump))) {
+                // This WAD will not be fully playable in single-player. Abort here.
+                return true;
+            }
+
+            // Check enemy count.
+            totalEnemyCount += Lumpalyzer.GetEnemyCount(_wad.GetLump(thingLump), _analysisSettings.IsHeretic);
         }
 
-        return _analysisSettings.DeathmatchMapEnemyThreshold >= totalEnemyCount;
+        if(_analysisSettings.DeathmatchMapEnemyThreshold >= totalEnemyCount) {
+            return true;
+        };
+
+        return false;
+    }
+
+    /// <summary>
+    /// Detects maps that do not have an exit.
+    /// </summary>
+    /// <returns>A list of maps that lack an exit.</returns>
+    private List<WadDirectoryEntry> DetectMapsWithNoExit() {
+        var mapsWithNoExit = new List<WadDirectoryEntry>();
+
+        foreach(var map in MapList) {
+            var hasExit = false;
+            var mapLumpsNullable = GetMapLumps(map.Name);
+
+            if(!mapLumpsNullable.HasValue) {
+                // This shouldn't happen, but handle it just in case.
+                Console.WriteLine($"DetectMapsWithNoEdit: unable to find map lumps for {map.Name}");
+                continue;
+            }
+            var mapLumps = mapLumpsNullable.Value;
+            
+            //
+            // LINEDEFS
+            //
+            var linedefIds = new List<ushort> {
+                11,   // S1 Exit
+                51,   // S1 Secret Exit
+                52,   // W1 Exit
+                124,  // W1 Secret Exit
+                197,  // G1 Exit (Boom)
+                198   // G1 Secret Exit (Boom)
+            };
+            var linedefStream = _wad.GetLump(mapLumps.Linedefs);
+
+            if(Lumpalyzer.LinedefTypeExists(linedefStream, linedefIds)) {
+                hasExit = true;
+            }
+            
+            //
+            // SECTORS
+            //
+            var sectorStream = _wad.GetLump(mapLumps.Sectors);
+            
+            // Type 11: 20% damage, exit
+            if(Lumpalyzer.SectorTypeExists(sectorStream, 11)) {
+                hasExit = true;
+            }
+            
+            // Generalized types: 12+6 (kill all players, exit), 12+6+5 (kill all players, secret exit)
+            var sectorIds = new List<ushort> {
+                0b0001_0000_0100_0000,  //     12 + 6: kill all players, exit
+                0b0001_0000_0110_0000,  // 12 + 6 + 5: kill all players, secret exit
+            };
+            sectorStream = _wad.GetLump(mapLumps.Sectors);
+            if(Lumpalyzer.SectorTypeExists(sectorStream, sectorIds, true)) {
+                hasExit = true;
+            }
+
+            //
+            // THINGS
+            //
+            var thingIds = new List<ushort>();
+            var thingsStream = _wad.GetLump(mapLumps.Things);
+
+            // SPECIAL CASE: Romero's Head (Thing ID: 88)
+            thingIds.Add(88);
+            
+            // SPECIAL CASE: Cyberdemon on E2M8 (Thing ID: 16)
+            if(map.Name.ToUpper().StartsWith("E2M8")) {
+                thingIds.Add(16);
+            }
+
+            // SPECIAL CASE: Spider Mastermind on E3M8 (Thing ID: 7)
+            if(map.Name.ToUpper().StartsWith("E3M8")) {
+                thingIds.Add(7);
+            }
+
+            if(Lumpalyzer.ThingTypeExists(thingsStream, thingIds)) {
+                hasExit = true;
+            }
+            
+            // Done. Did we find an exit?
+            if(!hasExit) {
+                // Nope. Add it to the list.
+                mapsWithNoExit.Add(map);
+            }
+        }
+
+        return mapsWithNoExit;
     }
 
     /// <summary>
