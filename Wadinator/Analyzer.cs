@@ -31,7 +31,7 @@ public class Analyzer {
     }
 
     /// <summary>
-    /// Initializes the wad analyzer.
+    /// Initializes the WAD analyzer.
     /// </summary>
     /// <param name="wadReader">A <see cref="WadReader"/> containing a loaded WAD.</param>
     /// <param name="analysisSettings">Settings for the WAD analyzer.</param>
