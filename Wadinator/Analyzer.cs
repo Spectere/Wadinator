@@ -11,9 +11,10 @@ public class Analyzer {
     private AnalysisSettings _analysisSettings;
 
     // Map List Regex
-    private static readonly Regex AllMapsRegEx = new("^(E.M.|MAP..)");
-    private static readonly Regex EpisodeAndMapRegEx = new("^(E.M.)");
-    private static readonly Regex UltimateDoomMapRegEx = new Regex("^(E4M.)");
+    private static readonly Regex AllMapsRegEx = new(@"^(E\dM\d|MAP\d\d).*");
+    private static readonly Regex EpisodeAndMapRegEx = new(@"^(E\dM\d).*");
+    private static readonly Regex UltimateDoomMapRegEx = new Regex(@"^(E4M\d).*");
+    private static readonly Regex MapRegex = new(@"^MAP\d\d.*");
 
     // Map Lump Information
     private List<WadDirectoryEntry> MapList =>
@@ -21,7 +22,7 @@ public class Analyzer {
 
     private bool HasUltimateDoomMaps => MapList.Any(map => UltimateDoomMapRegEx.IsMatch(map.Name));
     private bool UsesEpisodeAndMap => MapList.Any(x => EpisodeAndMapRegEx.IsMatch(x.Name));
-    private bool UsesMapOnly => MapList.Any(x => x.Name.StartsWith("MAP"));
+    private bool UsesMapOnly => MapList.Any(x => MapRegex.IsMatch(x.Name));
     
     // Map Lump Directory Entries
     private struct MapLumpCollection {
