@@ -20,6 +20,29 @@ The recursion function only works if a path is passed. This causes the
 Wadinator to scan the path and its subdirectories rather than just the base
 path.
 
+## Building from Source
+
+To build the Wadinator, you will need to install .NET 6 or newer on your system.
+This can be downloaded from [here](https://dotnet.microsoft.com/en-us/).
+
+After downloading and installing the .NET SDK, go into a command prompt or
+some other sort of terminal and do the following:
+
+1. Clone the repository: `git clone https://github.com/Spectere/Wadinator`
+2. Change into the directory of the newly-cloned repo: `cd Wadinator`
+3. Run `dotnet build`
+
+This will build a binary that can be found in the `Wadinator/bin/Debug/net6.0`
+directory, relative to where you cloned the repository.
+
+If you plan to modify the Wadinator, it's highly recommended that you use an
+IDE in order to streamline the development process. A few options include:
+
+* [JetBrains Rider](https://www.jetbrains.com/rider/) (commercial, Windows / macOS / Linux)
+* [Visual Studio](https://visualstudio.microsoft.com) (free, Windows / macOS)
+* [Visual Studio Code](https://code.visualstudio.com) (free, Windows / macOS / Linux)
+* [MonoDevelop](https://www.monodevelop.com) (free, Windows / macOS / Linux)
+
 ## Randomization!
 
 If a path is given to the Wadinator, a running list of picked WADs will be
