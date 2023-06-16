@@ -5,64 +5,26 @@ namespace Wadinator;
 /// <summary>
 /// Contains the results of a WAD analysis.
 /// </summary>
-public record AnalysisResults {
-    /// <summary>The detected <see cref="CompLevel"/> for this WAD.</summary>
-    public CompLevel CompLevel { get; }
-
-    /// <summary><c>true</c> if this WAD contains maps with ExMx map lumps, otherwise <c>false</c>.</summary>
-    public bool ContainsExMxMaps { get; }
-
-    /// <summary><c>true</c> if this WAD contains maps with MAPxx map lumps, otherwise <c>false</c>.</summary>
-    public bool ContainsMapXxMaps { get; }
-
-    /// <summary><c>true</c> if this WAD contains Cyberdemon(s) or Spider Mastermind(s), as well as sectors with
-    /// tag 666, in E1M8.</summary>
-    public bool HasMismatchedBosses { get; }
-
-    /// <summary>A list of maps lumps contained in this WAD.</summary>
-    public List<WadDirectoryEntry> MapList { get; }
+/// <param name="CompLevel">The detected <see cref="CompLevel"/> for this WAD.</param>
+/// <param name="ContainsExMxMaps"><c>true</c> if this WAD contains maps with ExMx map lumps, otherwise <c>false</c>.</param>
+/// <param name="ContainsMapXxMaps"><c>true</c> if this WAD contains maps with MAPxx map lumps, otherwise <c>false</c>.</param>
+/// <param name="HasMismatchedBosses"><c>true</c> if this WAD contains Cyberdemon(s) or Spider Mastermind(s), as well as sectors with
+/// tag 666, in E1M8.</param>
+/// <param name="MapList">A list of maps lumps contained in this WAD.</param>
+/// <param name="MapsWithNoExit">A list of maps lumps that do not have an exit.</param>
+/// <param name="MusicList">A list of music lumps contained in this WAD.</param>
+/// <param name="IsDeathmatchWad"><c>true</c> if this WAD is flagged as a deathmatch WAD. This will be set to <c>false</c> if
+/// deathmatch WAD detection is disabled, or if the check returns negative.</param>
+public record AnalysisResults(
+    CompLevel CompLevel,
+    bool ContainsExMxMaps,
+    bool ContainsMapXxMaps,
+    bool HasMismatchedBosses,
+    List<WadDirectoryEntry> MapList,
+    List<WadDirectoryEntry> MapsWithNoExit,
+    List<WadDirectoryEntry> MusicList,
+    bool IsDeathmatchWad) {
     
-    /// <summary>A list of maps lumps that do not have an exit.</summary>
-    public List<WadDirectoryEntry> MapsWithNoExit { get; }
-
-    /// <summary>A list of music lumps contained in this WAD.</summary>
-    public List<WadDirectoryEntry> MusicList { get; }
-
-    /// <summary><c>true</c> if this WAD is flagged as a deathmatch WAD. This will be set to <c>false</c> if
-    /// deathmatch WAD detection is disabled, or if the check returns negative.</summary>
-    public bool IsDeathmatchWad { get; }
-    
-    /// <summary>
-    /// Contains the results of a WAD analysis.
-    /// </summary>
-    /// <param name="CompLevel">The detected <see cref="CompLevel"/> for this WAD.</param>
-    /// <param name="ContainsExMxMaps"><c>true</c> if this WAD contains maps with ExMx map lumps, otherwise <c>false</c>.</param>
-    /// <param name="ContainsMapXxMaps"><c>true</c> if this WAD contains maps with MAPxx map lumps, otherwise <c>false</c>.</param>
-    /// <param name="HasMismatchedBosses"><c>true</c> if this WAD contains Cyberdemon(s) or Spider Mastermind(s), as well as sectors with
-    /// tag 666, in E1M8.</param>
-    /// <param name="MapList">A list of maps lumps contained in this WAD.</param>
-    /// <param name="MapsWithNoExit">A list of maps lumps that do not have an exit.</param>
-    /// <param name="MusicList">A list of music lumps contained in this WAD.</param>
-    /// <param name="IsDeathmatchWad"><c>true</c> if this WAD is flagged as a deathmatch WAD. This will be set to <c>false</c> if
-    /// deathmatch WAD detection is disabled, or if the check returns negative.</param>
-    public AnalysisResults(CompLevel CompLevel,
-                           bool ContainsExMxMaps,
-                           bool ContainsMapXxMaps,
-                           bool HasMismatchedBosses,
-                           List<WadDirectoryEntry> MapList,
-                           List<WadDirectoryEntry> MapsWithNoExit,
-                           List<WadDirectoryEntry> MusicList,
-                           bool IsDeathmatchWad) {
-        this.CompLevel = CompLevel;
-        this.ContainsExMxMaps = ContainsExMxMaps;
-        this.ContainsMapXxMaps = ContainsMapXxMaps;
-        this.HasMismatchedBosses = HasMismatchedBosses;
-        this.MapList = MapList;
-        this.MapsWithNoExit = MapsWithNoExit;
-        this.MusicList = MusicList;
-        this.IsDeathmatchWad = IsDeathmatchWad;
-    }
-
     /// <summary>
     /// This adjusts the Doom II MAPxx name so that the episodes are separated appropriately.
     /// If we don't do this, we'll end up with MAP01-09 (9 maps) on one line and MAP10-19 (10
@@ -85,7 +47,7 @@ public record AnalysisResults {
     public string GetFormattedMapList(List<WadDirectoryEntry> mapList, int padding = 0) {
         StringBuilder output = new();
         var pad = new string(' ', padding);
-        
+
         if(ContainsExMxMaps) {
             // Put each episode on its own line.
             var prefixes = mapList.Select(x => x.Name)
@@ -128,6 +90,6 @@ public record AnalysisResults {
             }
         }
 
-        return output.ToString().TrimEnd();  // Trim away any trailing newlines.
+        return output.ToString().TrimEnd();// Trim away any trailing newlines.
     }
 }
