@@ -49,20 +49,22 @@ public record AnalysisResults(
         var pad = new string(' ', padding);
 
         if(ContainsExMxMaps) {
-            // Put each episode on its own line.
-            var prefixes = mapList.Select(x => x.Name)
+            var exmxMaps = mapList.Select(x => x.Name)
                                   .Where(x => x.StartsWith("E"))
-                                  .Select(x => x[..2])
-                                  .Distinct()
-                                  .OrderBy(x => x);
+                                  .ToList();
+
+            // Put each episode on its own line.
+            var prefixes = exmxMaps.Where(x => x.StartsWith("E"))
+                                   .Select(x => x[..2])
+                                   .Distinct()
+                                   .OrderBy(x => x);
 
             foreach(var prefix in prefixes) {
                 // Find the maps in each episode, trim the strings to remove any excess junk, and display them in a nice list.
-                var episodeMaps = mapList.Select(x => x.Name)
-                                         .Where(x => x.StartsWith(prefix))
-                                         .Select(x => x[..4])
-                                         .Distinct()
-                                         .OrderBy(x => x);
+                var episodeMaps = exmxMaps.Where(x => x.StartsWith(prefix))
+                                          .Select(x => x[..4])
+                                          .Distinct()
+                                          .OrderBy(x => x);
 
                 output.Append(pad);
                 output.AppendLine(string.Join(", ", episodeMaps));
@@ -70,20 +72,21 @@ public record AnalysisResults(
         }
 
         if(ContainsMapXxMaps) {
+            var mapXxMaps = mapList.Select(x => x.Name)
+                                   .Where(x => x.StartsWith("MAP"))
+                                   .ToList();
+
             // Put each "episode" (10 map set) on its own line.
-            var prefixes = mapList.Select(x => x.Name)
-                                  .Where(x => x.StartsWith("MAP"))
-                                  .Select(x => AdjustDoom2MapNameForEpisodeSort(x)[..4])
-                                  .Distinct()
-                                  .OrderBy(x => x);
+            var prefixes = mapXxMaps.Select(x => AdjustDoom2MapNameForEpisodeSort(x)[..4])
+                                    .Distinct()
+                                    .OrderBy(x => x);
 
             foreach(var prefix in prefixes) {
                 // Find the maps in each "episode," trim the strings down to remove any excess junk, and display them in a nice list.
-                var episodeMaps = mapList.Select(x => x.Name)
-                                         .Where(x => AdjustDoom2MapNameForEpisodeSort(x).StartsWith(prefix))
-                                         .Select(x => x[..5])
-                                         .Distinct()
-                                         .OrderBy(x => x);
+                var episodeMaps = mapXxMaps.Where(x => AdjustDoom2MapNameForEpisodeSort(x).StartsWith(prefix))
+                                           .Select(x => x[..5])
+                                           .Distinct()
+                                           .OrderBy(x => x);
 
                 output.Append(pad);
                 output.AppendLine(string.Join(", ", episodeMaps));
