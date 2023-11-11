@@ -387,7 +387,7 @@ if(OperatingSystem.IsWindows()) {
     path = path.Replace("/", "\\");
 }
 
-// Clearing out the played history takes even more precident.
+// Clearing out the played history takes even more precedent.
 if(clearPlayed) {
     // Wipe the played history from the data file.
     Print("Clearing out the played WAD history...");
@@ -399,7 +399,7 @@ if(clearPlayed) {
     return 0;
 }
 
-// Clearing out the music takes precident.
+// Clearing out the music takes precedent.
 if(clearMusic) {
     // Wipe the music from the data file.
     Print("Clearing out the music database...");
@@ -612,7 +612,7 @@ if(game == Game.Heretic) {
         ""
     );
 
-    if(analysisResults.HasMismatchedBosses && analysisResults.CompLevel <= CompLevel.UltimateDoom) {
+    if(analysisResults is { HasMismatchedBosses: true, CompLevel: <= CompLevel.UltimateDoom }) {
         if(config.Games.Doom.UsesComplevels) {
             Print(
                 "",
@@ -645,7 +645,7 @@ if(game == Game.Heretic) {
             );
         }
 
-        if(analysisResults.CompLevel < CompLevel.Boom && analysisResults.ContainsExMxMaps) {
+        if(analysisResults is { CompLevel: < CompLevel.Boom, ContainsExMxMaps: true }) {
             Print(
                 "     0 - Doom v1.2",
                 "     1 - Doom v1.666");
@@ -663,7 +663,7 @@ if(game == Game.Heretic) {
             }
         }
 
-        if(analysisResults.CompLevel < CompLevel.Boom && analysisResults.ContainsMapXxMaps) {
+        if(analysisResults is { CompLevel: < CompLevel.Boom, ContainsMapXxMaps: true }) {
             Print(
                 "     1 - Doom v1.666",
                 "     4 - Final Doom"
