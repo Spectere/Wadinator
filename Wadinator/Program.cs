@@ -260,6 +260,8 @@ if((args.Length == 0 && string.IsNullOrWhiteSpace(config.DefaultPath)) || helpAr
         "                        in [WADDIR]/TXT/[WADNAME]/, as well as the directory of the",
         "                        WAD.",
         "    -(no-)music         Enables or disables music WAD generation.",
+        "    -(no-)cr-music      Enables or disables the ability for the music WAD generator",
+        "                        to pick copyrighted music tracks.",
         "    -v                  Enables verbose output. Currently this is only used for the",
         "                        music import feature.",
         ""
@@ -333,6 +335,16 @@ foreach(var arg in args) {
             config.MusicRandomizerConfig.GenerateMusicWad = false;
             break;
         
+        case "-no-cr":
+        case "-no-cr-music":
+            config.MusicRandomizerConfig.AllowCopyrightedTracks = false;
+            break;
+
+        case "-cr":
+        case "-cr-music":
+            config.MusicRandomizerConfig.AllowCopyrightedTracks = true;
+            break;
+
         case "-clear-all-music":
             clearMusic = true;
             break;
@@ -426,6 +438,7 @@ if(importMusic) {
         existingLump.Title = newMusicLump.Title;
         existingLump.Artist = newMusicLump.Artist;
         existingLump.Sequencer = newMusicLump.Sequencer;
+        existingLump.Copyright = newMusicLump.Copyright;
         existingLump.Exists = newMusicLump.Exists;
     }
 
@@ -514,7 +527,8 @@ if(config.MusicRandomizerConfig.GenerateMusicWad) {
     musicWadGenerationResults = musicRandomizer.GenerateWad(
         musicLumps: data.MusicLumps,
         mapList: analysisResults.MapList.Select(x => x.Name).ToList(),
-        existingMusic: analysisResults.MusicList.Select(x => x.Name).ToList()
+        existingMusic: analysisResults.MusicList.Select(x => x.Name).ToList(),
+        allowCopyrightedSongs: config.MusicRandomizerConfig.AllowCopyrightedTracks
     );
 
     printMusicWadFilename = musicWadGenerationResults.Success;
@@ -724,6 +738,10 @@ if(config.MusicRandomizerConfig.DisplaySelectedTracks && musicWadGenerationResul
 
     foreach(var replacement in musicWadGenerationResults.SelectedLumps) {
         var attribution = (string.IsNullOrWhiteSpace(replacement.Value.Title) ? "Unknown Song" : replacement.Value.Title);
+        
+        if (replacement.Value.Copyright == true) {
+            attribution += " (c)";
+        }
 
         if(string.IsNullOrWhiteSpace(replacement.Value.Artist) && string.IsNullOrWhiteSpace(replacement.Value.Sequencer)) {
             attribution += ", by an unknown author";
