@@ -171,8 +171,10 @@ public class MusicRandomizer {
     /// <param name="mapList">All of the maps contained in the WAD file.</param>
     /// <param name="existingMusic">All of the music (D_*) lumps in the WAD file. This will be ignored if "ReplaceExistingMusic"
     /// is enabled.</param>
+    /// <param name="allowCopyrightedSongs">If this is set to <c>true</c>, songs marked with the copyright flag will
+    /// be included from the list of potential candidates.</param> 
     /// <returns>The results of the generation process.</returns>
-    public MusicWadGenerationResults GenerateWad(List<MusicLump> musicLumps, List<string> mapList, List<string> existingMusic) {
+    public MusicWadGenerationResults GenerateWad(List<MusicLump> musicLumps, List<string> mapList, List<string> existingMusic, bool allowCopyrightedSongs) {
         var results = new MusicWadGenerationResults {
             Success = true,
             MusicLumps = musicLumps
@@ -237,15 +239,21 @@ public class MusicRandomizer {
          */
         
         // 1. Start everything with a weight of 100.
-        var candidates = musicLumps.Where(x => x.Exists)
+        var filteredLumps = musicLumps;
+        if (!allowCopyrightedSongs) {
+            filteredLumps = filteredLumps.Where(x => x.Copyright != true).ToList();
+        }
+        
+        var candidates = filteredLumps.Where(x => x.Exists)
                                    .Select(x => new MusicStats {
                                        Sha1 = x.Sha1,
                                        SelectionCount = x.SelectionCount,
                                        Weight = 100
-                                   }).ToList();
+                                   })
+                                   .ToList();
         
         // 2. If no selections have been made, leave it at that.
-        var totalSelections = musicLumps.Sum(x => x.SelectionCount);
+        var totalSelections = filteredLumps.Sum(x => x.SelectionCount);
         if(totalSelections > 0) {
             // 3. Determine the percentage of plays a particular song has.
             
@@ -458,6 +466,7 @@ public class MusicRandomizer {
                 musicLump.Title = manifestEntry.Title ?? musicLump.Title;
                 musicLump.Artist = manifestEntry.Artist ?? musicLump.Artist;
                 musicLump.Sequencer = manifestEntry.Sequencer ?? musicLump.Sequencer;
+                musicLump.Copyright = manifestEntry.Copyright ?? musicLump.Copyright ?? false;
             }
         }
         

@@ -90,6 +90,13 @@ track-intermission-music-usage = false
 # If this is set to true, the tracks that are selected will be displayed when the program is run.
 display-selected-tracks = true
 
+# If this is set to true, songs that have the "copyright" flag configured in the manifest will be eligible for
+# selection. This should be set to "false" (or overridden using the command line parameter) if you plan to broadcast
+# yourself playing random WADs on Twitch or YouTube. Please note that the effectiveness of this setting depends on the
+# music manifest being properly configured. The Wadinator has no way of knowing if a MIDI is going to detected by a
+# copyright bot.
+allow-copyrighted-tracks = true
+
 
 # Text editor settings.
 [editor]

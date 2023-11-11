@@ -29,6 +29,11 @@ public class MusicLump {
     /// The sequencer of this track. This is intended for music tracks that were transcribed to a supported format (such as MIDI).
     /// </summary>
     public string? Sequencer { get; set; }
+    
+    /// <summary>
+    /// The copyright flag for this track. If this is set to <c>true</c> it may be selectively excluded from the music pool.
+    /// </summary>
+    public bool? Copyright { get; set; }
 
     /// <summary>
     /// The number of times the lump with this hash has been played.

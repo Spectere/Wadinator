@@ -9,7 +9,7 @@ public class MusicRandomizerConfig {
     /// <c>false</c>.
     /// </summary>
     [TomlProperty("generate-music-wad")]
-    public bool GenerateMusicWad { get; set; } = false;
+    public bool GenerateMusicWad { get; set; }
 
     /// <summary>
     /// The filename of the music WAD. This setting defaults to "WadinatorMusic.wad".
@@ -54,4 +54,15 @@ public class MusicRandomizerConfig {
     /// </summary>
     [TomlProperty("display-selected-tracks")]
     public bool DisplaySelectedTracks { get; set; } = true;
+
+    /// <summary>
+    /// If this is set to <c>true</c>, songs that have the "copyright" flag configured in the
+    /// manifest will be eligible for selection. This should be set to <c>false</c> (or overridden
+    /// using the command line parameter) if you plan to broadcast yourself playing random
+    /// WADs on Twitch or YouTube. Please note that the effectiveness of this setting depends
+    /// on the music manifest being properly configured. The Wadinator has no way of knowing
+    /// if a MIDI is going to detected by a copyright bot. 
+    /// </summary>
+    [TomlProperty("allow-copyrighted-tracks")]
+    public bool AllowCopyrightedTracks { get; set; } = true;
 }
