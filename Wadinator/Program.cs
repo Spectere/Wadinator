@@ -129,7 +129,7 @@ static void WriteDataFile(string dataFilename, WadinatorData data) {
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 // Check for a default configuration file, and create one if it doesn't exist.
-var appDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? "";
+var appDirectory = Path.GetDirectoryName(AppContext.BaseDirectory) ?? "";
 var configPath = Path.Combine(appDirectory, "Wadinator.toml");
 
 if(!File.Exists(configPath)) {
